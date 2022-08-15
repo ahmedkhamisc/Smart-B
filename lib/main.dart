@@ -24,7 +24,7 @@ void main() {
         backgroundColor: Color(0xFF44CBB1),
       ),
     ),
-    home: SplashScreen(),
+    home: homeRelatedPersonPage(),
   ));
 }
 
@@ -42,7 +42,7 @@ class _SplashScreenState extends State<SplashScreen> {
         Duration(seconds: 2),
         () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const homePage()),
+              MaterialPageRoute(builder: (context) => const GetStarted()),
             ));
   }
 
