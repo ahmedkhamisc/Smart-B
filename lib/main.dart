@@ -24,7 +24,7 @@ void main() {
         backgroundColor: Color(0xFF44CBB1),
       ),
     ),
-    home: homeRelatedPersonPage(),
+    home: SplashScreen(),
   ));
 }
 
