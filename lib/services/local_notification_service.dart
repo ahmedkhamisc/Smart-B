@@ -46,10 +46,12 @@ class localNotificationService {
     required int id,
     required String title,
     required String body,
+    required int hours,
+    required int min,
   }) async {
     final details = await _notificationDetails();
     var dateTime = DateTime(DateTime.now().year, DateTime.now().month,
-        DateTime.now().day, 10, 30, 0);
+        DateTime.now().day, hours, min, 0);
     await _localNotificationService.zonedSchedule(
         id, title, body, tz.TZDateTime.from(dateTime, tz.local), details,
         androidAllowWhileIdle: true,

@@ -39,8 +39,11 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     service = localNotificationService();
     service.intialize();
-    _getNotification();
-    super.initState();
+    _getNotification(0, 15);
+    _getNotification(10, 30);
+    _getNotification(14, 0);
+    _getNotification(20, 0);
+
     super.initState();
     Timer(
         const Duration(seconds: 2),
@@ -50,11 +53,14 @@ class _SplashScreenState extends State<SplashScreen> {
             ));
   }
 
-  void _getNotification() async {
+  void _getNotification(int hours, int min) async {
     await service.showScheduleNotification(
-        id: 0,
-        title: 'Panadol',
-        body: 'Hey there, it\'s time to take two pills');
+      id: 0,
+      title: 'Panadol',
+      body: 'Hey there, it\'s time to take two pills',
+      hours: hours,
+      min: min,
+    );
   }
 
   @override
