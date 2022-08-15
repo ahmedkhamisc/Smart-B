@@ -13,7 +13,7 @@ class _addDrugPageState extends State<addDrugPage> {
     return Scaffold(
       body: SafeArea(
         child: Container(
-          child: Text('add drug page'),
+          child: const Text('add drug page'),
         ),
       ),
     );

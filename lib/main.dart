@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'get_started_page.dart';
 import 'loading_page.dart';
@@ -8,6 +7,7 @@ import 'addDrug_page.dart';
 import 'moreInformation_page.dart';
 import 'moreInformation_relatedPerson_page.dart';
 import 'home_relatedPerson_page.dart';
+import 'services/local_notification_service.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -34,21 +34,32 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  late final localNotificationService service;
   @override
   void initState() {
-    // TODO: implement initState
+    service = localNotificationService();
+    service.intialize();
+    _getNotification();
+    super.initState();
     super.initState();
     Timer(
-        Duration(seconds: 2),
+        const Duration(seconds: 2),
         () => Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const GetStarted()),
             ));
   }
 
+  void _getNotification() async {
+    await service.showScheduleNotification(
+        id: 0,
+        title: 'Panadol',
+        body: 'Hey there, it\'s time to take two pills');
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       body: loadingPage(),
     );
   }

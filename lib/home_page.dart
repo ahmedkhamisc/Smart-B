@@ -14,7 +14,7 @@ class homePage extends StatefulWidget {
 class _homePageState extends State<homePage>
     with SingleTickerProviderStateMixin {
   int _currentPageIndex = 0;
-  final List _pagesBody = [
+  final List _pagesBody = const [
     homePageBody(),
     addDrugPage(),
     moreInformationPage(),

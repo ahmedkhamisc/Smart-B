@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'services/local_notification_service.dart';
 
 class moreInformationRelatedPerson extends StatefulWidget {
   const moreInformationRelatedPerson({Key? key}) : super(key: key);
@@ -14,8 +15,11 @@ class _moreInformationRelatedPersonState
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Container(
-          child: Text('more information related person page'),
+        child: Center(
+          child: TextButton(
+            onPressed: () {},
+            child: const Text('Get notification'),
+          ),
         ),
       ),
     );
