@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'get_started_page.dart';
 import 'loading_page.dart';
@@ -22,6 +24,32 @@ void main() {
         backgroundColor: Color(0xFF44CBB1),
       ),
     ),
-    home: homePage(),
+    home: SplashScreen(),
   ));
+}
+
+class SplashScreen extends StatefulWidget {
+  @override
+  _SplashScreenState createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    Timer(
+        Duration(seconds: 2),
+        () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const homePage()),
+            ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: loadingPage(),
+    );
+  }
 }

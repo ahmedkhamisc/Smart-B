@@ -7,10 +7,13 @@ class loadingPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Container(
-          child: Text('loading page'),
+          child: Center(
+        child: Image.asset(
+          'images/logo.png',
+          height: 170,
+          width: 170,
         ),
-      ),
+      )),
     );
   }
 }
