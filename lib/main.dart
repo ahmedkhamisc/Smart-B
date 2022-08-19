@@ -21,6 +21,6 @@ void main() {
         backgroundColor: Color(0xFF44CBB1),
       ),
     ),
-    home: GetStarted(),
+    home: homeRelatedPersonPage(),
   ));
 }
