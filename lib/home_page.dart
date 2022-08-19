@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'moreInformation_page.dart';
 import 'addDrug_page.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'dart:async';
+import 'services/local_notification_service.dart';
 
 class homePage extends StatefulWidget {
   const homePage({Key? key}) : super(key: key);
@@ -19,14 +21,29 @@ class _homePageState extends State<homePage>
     addDrugPage(),
     moreInformationPage(),
   ];
-
   late final TabController controller;
   Color indicatorColor = Color(0xFF44CBB1);
   bool showBottomBar = true;
+  late final localNotificationService service;
   @override
   void initState() {
+    service = localNotificationService();
+    service.intialize();
+    _getNotification(20, 13, 0);
+    _getNotification(20, 14, 1);
+    _getNotification(20, 15, 2);
     controller = TabController(length: 3, vsync: this);
     super.initState();
+  }
+
+  void _getNotification(int hours, int min, int id) async {
+    await service.showScheduleNotification(
+      id: id,
+      title: 'Panadol',
+      body: 'Hey there, it\'s time to take two pills',
+      hours: hours,
+      min: min,
+    );
   }
 
   void onTapped(int index) {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'services/local_notification_service.dart';
-import 'dart:async';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
 class moreInformationRelatedPerson extends StatefulWidget {
   const moreInformationRelatedPerson({Key? key}) : super(key: key);

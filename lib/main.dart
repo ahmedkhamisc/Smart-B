@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'get_started_page.dart';
-import 'loading_page.dart';
 import 'home_page.dart';
 import 'addDrug_page.dart';
 import 'moreInformation_page.dart';
@@ -22,6 +21,6 @@ void main() {
         backgroundColor: Color(0xFF44CBB1),
       ),
     ),
-    home: SplashScreen(),
+    home: GetStarted(),
   ));
 }
