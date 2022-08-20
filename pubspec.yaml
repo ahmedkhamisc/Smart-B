@@ -39,6 +39,8 @@ dependencies:
   timezone: ^0.8.0
   flutter_bluetooth_serial: ^0.4.0
   flutter_native_splash: ^2.2.7
+  awesome_select: ^5.2.0
+  timeline_tile: ^2.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
