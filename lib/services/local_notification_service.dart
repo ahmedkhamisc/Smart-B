@@ -1,6 +1,9 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
+import 'dart:async';
+import 'dart:isolate';
+import 'dart:ui';
 
 class localNotificationService {
   localNotificationService();
@@ -42,16 +45,16 @@ class localNotificationService {
         android: andriodNotifiactionDetails, iOS: iosNotificationDetails);
   }
 
-  Future<void> showScheduleNotification({
-    required int id,
-    required String title,
-    required String body,
-    required int hours,
-    required int min,
-  }) async {
+  Future<void> showScheduleNotification(
+      {required int id,
+      required String title,
+      required String body,
+      required int hours,
+      required int min,
+      required int sec}) async {
     final details = await _notificationDetails();
     var dateTime = DateTime(DateTime.now().year, DateTime.now().month,
-        DateTime.now().day, hours, min, 0);
+        DateTime.now().day, hours, min, sec);
     final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
     if (dateTime.isBefore(now))
       dateTime = dateTime.add(const Duration(days: 1));

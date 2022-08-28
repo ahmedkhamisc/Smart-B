@@ -41,6 +41,11 @@ dependencies:
   flutter_native_splash: ^2.2.7
   awesome_select: ^5.2.0
   timeline_tile: ^2.0.0
+  firebase_core:
+  firebase_database:
+  shared_preferences: ^2.0.15
+  rxdart: ^0.27.5
+  timeago: ^3.3.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "593508767526",
+    "firebase_url": "https://smart-b-11df3-default-rtdb.firebaseio.com",
+    "project_id": "smart-b-11df3",
+    "storage_bucket": "smart-b-11df3.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:593508767526:android:b16a4725e555de37a293e7",
+        "android_client_info": {
+          "package_name": "com.example.smart_b"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "593508767526-d6d79iqqatk2hjlepsok9hp8j37l2rsl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBMm_SvNAQuDRHrHsehKEgGZiJbD-GW0wc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "593508767526-d6d79iqqatk2hjlepsok9hp8j37l2rsl.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
