@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:smart_b/services/local_notification_service.dart';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
 DatabaseReference _dbref = FirebaseDatabase.instance.ref();
 Map<String, List<int>> daysData = {};
@@ -596,15 +597,6 @@ Stream<Widget> getDailyRevData() async* {
         for (int i = 1; i <= 2; ++i) {
           dosesTimeData[drugName] = dosesTimeData[drugName]! +
               [element.child("Doses Times").child("$i").child("Hour").value] +
-              [element.child("Doses Times").child("$i").child("Minute").value] +
-              [
-                element
-                    .child("Doses Times")
-                    .child("$i")
-                    .child("Number of pills")
-                    .value
-              ] +
-              [element.child("Doses Times").child("$i").child("period").value] +
               [element.child("Doses Times").child("$i").child("Minute").value] +
               [
                 element

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'services/firebase&Constants.dart';
 import 'package:timeago/timeago.dart' as timeago;
-
+import 'services/bluetoothService.dart';
 class test extends StatefulWidget {
   const test({Key? key}) : super(key: key);
 
@@ -19,6 +19,7 @@ class _testState extends State<test> {
         onPressed: () {
           setState(() {
             // getNotification('name', 1, 0, 39, 0);
+            blutoothService();
           });
         },
         child: Text('click'),
