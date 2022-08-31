@@ -505,6 +505,7 @@ class Card extends StatelessWidget {
 //
 //
 //
+int id = 0;
 Stream<Widget> getDailyRevData() async* {
   while (true) {
     await Future<void>.delayed(const Duration(seconds: 1));
@@ -512,6 +513,7 @@ Stream<Widget> getDailyRevData() async* {
     late String drugName;
     String doseTime = '';
     late int numOfPills;
+
     Column review = Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [],
@@ -623,7 +625,6 @@ Stream<Widget> getDailyRevData() async* {
             [element.child("Doses Times").child("1").child("State").value];
       }
     });
-    int id = 0;
     daysData.forEach((key1, value) {
       if (dosesTimeData[key1] != null &&
           DateTime.now().hour == 0 &&
@@ -693,7 +694,9 @@ Stream<Widget> getDailyRevData() async* {
                         .child("$doseNumber")
                         .child("State")
                         .set('Displayed');
+                    print(hour);
                     print(min);
+                    print(id);
                     getNotification(key1, numOfPills, hour, min, 1, id);
                     ++id;
                   } else if (i == 'Displayed') {

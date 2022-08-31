@@ -218,6 +218,7 @@ class _addDrugPageState extends State<addDrugPage> {
         times[i] = 'a';
         DosesTimesValues.remove(i + 1);
       }
+      print(DosesTimesValues);
       // print(maker.children.length);
       // print(times);
       //print(DosesTimesValues);
@@ -341,7 +342,6 @@ class _addDrugPageState extends State<addDrugPage> {
                     choiceItems: Days,
                     onChange: (state) => setState(() {
                       days = state!.value;
-                      print(days);
                     }),
                   ),
                 ),
@@ -372,22 +372,26 @@ class _addDrugPageState extends State<addDrugPage> {
                     setState(() {
                       check(TimeDosesMaker(dosesPerDay)!.children.length);
                       //       print(isDrugExits(myNameController.text));
-                      if (!drugNameCheck &&
-                          !numberOfPillsCheck &&
-                          !bottleCheck &&
-                          !timeCheck &&
-                          !timeNullCheck &&
-                          !daysCheck) {
-                        dbAddDrug(
-                            myNameController.text.trim(),
-                            myPillsNumController.text.trim(),
-                            myBottleController.text.trim(),
-                            dosesPerDay);
-                        Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(builder: (context) => homePage()),
-                            (e) => false);
-                      }
+                      if (DosesTimesValues != {}) {
+                        if (!drugNameCheck &&
+                            !numberOfPillsCheck &&
+                            !bottleCheck &&
+                            !timeCheck &&
+                            !timeNullCheck &&
+                            !daysCheck) {
+                          dbAddDrug(
+                              myNameController.text.trim(),
+                              myPillsNumController.text.trim(),
+                              myBottleController.text.trim(),
+                              dosesPerDay);
+                          Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => homePage()),
+                              (e) => false);
+                        }
+                      } else
+                        print(DosesTimesValues);
                     }),
                   },
                 )
@@ -540,6 +544,7 @@ class _DosesTimesState extends State<DosesTimes> {
                     newTime!.minute.toString() +
                     ' ' +
                     DosesTimesValues[widget.doseNumber]!.elementAt(2);
+                //  print(DosesTimesValues);
               });
             },
             items: <int>[1, 2, 3].map<DropdownMenuItem<int>>((int value) {
