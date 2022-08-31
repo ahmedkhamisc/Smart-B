@@ -694,11 +694,6 @@ Stream<Widget> getDailyRevData() async* {
                         .child("$doseNumber")
                         .child("State")
                         .set('Displayed');
-                    print(hour);
-                    print(min);
-                    print(id);
-                    getNotification(key1, numOfPills, hour, min, 1, id);
-                    ++id;
                   } else if (i == 'Displayed') {
                     review.children.insert(
                         review.children.length,
@@ -794,6 +789,195 @@ Stream<Widget> getDailyRevData() async* {
       );
     yield tst;
   }
+}
+
+Future<void> getBackgroundServices() async {
+  late Iterable<DataSnapshot> data;
+  late String drugName;
+  String doseTime = '';
+  late int numOfPills;
+
+  await _dbref
+      .child("Drugs")
+      .once()
+      .then((event) => data = event.snapshot.children);
+  data.forEach((element) {
+    drugName = element.child("Name").value.toString();
+    daysData[drugName] = [];
+    int sum = 0;
+    if (element.child("Days").hasChild("Sunday")) {
+      daysData[drugName] = daysData[drugName]! + [7];
+    }
+    if (element.child("Days").hasChild("Monday")) {
+      daysData[drugName] = daysData[drugName]! + [1];
+    }
+    if (element.child("Days").hasChild("Tuesday")) {
+      daysData[drugName] = daysData[drugName]! + [2];
+    }
+    if (element.child("Days").hasChild("Wednesday")) {
+      daysData[drugName] = daysData[drugName]! + [3];
+    }
+    if (element.child("Days").hasChild("Thursday")) {
+      daysData[drugName] = daysData[drugName]! + [4];
+    }
+    if (element.child("Days").hasChild("Friday")) {
+      daysData[drugName] = daysData[drugName]! + [5];
+    }
+    if (element.child("Days").hasChild("Saturday")) {
+      daysData[drugName] = daysData[drugName]! + [6];
+    }
+
+    dosesTimeData[drugName] = [];
+    if (element.child("Doses Times").hasChild("5")) {
+      for (int i = 1; i <= 5; ++i) {
+        dosesTimeData[drugName] = dosesTimeData[drugName]! +
+            [element.child("Doses Times").child("$i").child("Hour").value] +
+            [element.child("Doses Times").child("$i").child("Minute").value] +
+            [
+              element
+                  .child("Doses Times")
+                  .child("$i")
+                  .child("Number of pills")
+                  .value
+            ] +
+            [element.child("Doses Times").child("$i").child("period").value] +
+            [element.child("Doses Times").child("$i").child("State").value];
+      }
+    } else if (element.child("Doses Times").hasChild("4")) {
+      for (int i = 1; i <= 4; ++i) {
+        dosesTimeData[drugName] = dosesTimeData[drugName]! +
+            [element.child("Doses Times").child("$i").child("Hour").value] +
+            [element.child("Doses Times").child("$i").child("Minute").value] +
+            [
+              element
+                  .child("Doses Times")
+                  .child("$i")
+                  .child("Number of pills")
+                  .value
+            ] +
+            [element.child("Doses Times").child("$i").child("period").value] +
+            [element.child("Doses Times").child("$i").child("State").value];
+      }
+    } else if (element.child("Doses Times").hasChild("3")) {
+      for (int i = 1; i <= 3; ++i) {
+        dosesTimeData[drugName] = dosesTimeData[drugName]! +
+            [element.child("Doses Times").child("$i").child("Hour").value] +
+            [element.child("Doses Times").child("$i").child("Minute").value] +
+            [
+              element
+                  .child("Doses Times")
+                  .child("$i")
+                  .child("Number of pills")
+                  .value
+            ] +
+            [element.child("Doses Times").child("$i").child("period").value] +
+            [element.child("Doses Times").child("$i").child("State").value];
+      }
+    } else if (element.child("Doses Times").hasChild("2")) {
+      for (int i = 1; i <= 2; ++i) {
+        dosesTimeData[drugName] = dosesTimeData[drugName]! +
+            [element.child("Doses Times").child("$i").child("Hour").value] +
+            [element.child("Doses Times").child("$i").child("Minute").value] +
+            [
+              element
+                  .child("Doses Times")
+                  .child("$i")
+                  .child("Number of pills")
+                  .value
+            ] +
+            [element.child("Doses Times").child("$i").child("period").value] +
+            [element.child("Doses Times").child("$i").child("State").value];
+      }
+    } else {
+      dosesTimeData[drugName] = dosesTimeData[drugName]! +
+          [element.child("Doses Times").child("1").child("Hour").value] +
+          [element.child("Doses Times").child("1").child("Minute").value] +
+          [
+            element
+                .child("Doses Times")
+                .child("1")
+                .child("Number of pills")
+                .value
+          ] +
+          [element.child("Doses Times").child("1").child("period").value] +
+          [element.child("Doses Times").child("1").child("State").value];
+    }
+  });
+  daysData.forEach((key1, value) {
+    if (dosesTimeData[key1] != null &&
+        DateTime.now().hour == 0 &&
+        DateTime.now().minute == 0 &&
+        DateTime.now().second == 0)
+      for (int i = 1; i <= (dosesTimeData[key1]!.length / 5); i++) {
+        _dbref
+            .child("Drugs")
+            .child("$key1")
+            .child("Doses Times")
+            .child("$i")
+            .child("State")
+            .set('Not displayed');
+        id = 0;
+      }
+    if (value.contains(DateTime.now().weekday)) {
+      dosesTimeData.forEach((key2, value) {
+        int count = 1;
+        int hour = 0;
+        int min = 0;
+        int doseNumber = 1;
+        if (key1 == key2)
+          for (var i in value) {
+            late String now = DateTime.now().hour.toString();
+            if (DateTime.now().hour > 12) {
+              now = DateTime.now().hour.toString() +
+                  ':' +
+                  DateTime.now().minute.toString() +
+                  ' PM';
+            } else {
+              now = DateTime.now().hour.toString() +
+                  ':' +
+                  DateTime.now().minute.toString() +
+                  ' AM';
+            }
+            if (count == 1) {
+              doseTime += '$i:';
+              hour = i;
+            } else if (count == 2) {
+              min = i;
+              doseTime += '$i';
+              doseTime += ' ';
+            } else if (count == 3) {
+              numOfPills = i;
+            } else if (count == 4) {
+              doseTime += i.toString();
+            } else if (count == 5) {
+              DateTime timeAgo = DateTime.utc(DateTime.now().year,
+                  DateTime.now().month, DateTime.now().day, hour - 3, min);
+              if (doseTime == now) {
+                if (i == 'Not displayed') {
+                  print('seiii');
+                  _dbref
+                      .child("Drugs")
+                      .child("$key1")
+                      .child("Doses Times")
+                      .child("$doseNumber")
+                      .child("State")
+                      .set('Displayed');
+                  print(hour);
+                  print(min);
+                  print(id);
+                  getNotification(key1, numOfPills, hour, min, 1, id);
+                  ++id;
+                }
+              }
+              doseTime = '';
+              count = 0;
+              doseNumber++;
+            }
+            ++count;
+          }
+      });
+    }
+  });
 }
 
 late final localNotificationService service;
