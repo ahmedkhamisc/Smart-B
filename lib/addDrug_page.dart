@@ -37,6 +37,7 @@ class _addDrugPageState extends State<addDrugPage> {
     bottleCheck = false;
     timeCheck = false;
     timeNullCheck = false;
+    daysCheck = false;
     times.clear();
     super.dispose();
   }
@@ -52,7 +53,7 @@ class _addDrugPageState extends State<addDrugPage> {
   bool bottleCheck = false;
   bool timeCheck = false;
   bool timeNullCheck = false;
-
+  bool daysCheck = false;
   List<S2Choice<int>> Doses = [
     S2Choice<int>(value: 1, title: '1 Doses'),
     S2Choice<int>(value: 2, title: '2 Doses'),
@@ -338,9 +339,21 @@ class _addDrugPageState extends State<addDrugPage> {
                     title: 'Days',
                     selectedValue: days,
                     choiceItems: Days,
-                    onChange: (state) => setState(() => days = state!.value),
+                    onChange: (state) => setState(() {
+                      days = state!.value;
+                      print(days);
+                    }),
                   ),
                 ),
+                Visibility(
+                    visible: daysCheck,
+                    child: Align(
+                      alignment: Alignment.topLeft,
+                      child: Text(
+                        'Please set at least one day!',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    )),
 
                 const SizedBox(height: 30),
                 ElevatedButton(
@@ -363,11 +376,12 @@ class _addDrugPageState extends State<addDrugPage> {
                           !numberOfPillsCheck &&
                           !bottleCheck &&
                           !timeCheck &&
-                          !timeNullCheck) {
+                          !timeNullCheck &&
+                          !daysCheck) {
                         dbAddDrug(
-                            myNameController.text,
-                            myPillsNumController.text,
-                            myBottleController.text,
+                            myNameController.text.trim(),
+                            myPillsNumController.text.trim(),
+                            myBottleController.text.trim(),
                             dosesPerDay);
                         Navigator.pushAndRemoveUntil(
                             context,
@@ -414,6 +428,11 @@ class _addDrugPageState extends State<addDrugPage> {
       timeNullCheck = true;
     else
       timeNullCheck = false;
+
+    if (days == null)
+      daysCheck = true;
+    else
+      daysCheck = false;
   }
 
   Widget buildDrugName() {

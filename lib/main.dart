@@ -10,7 +10,6 @@ import 'moreInformation_relatedPerson_page.dart';
 import 'home_relatedPerson_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:smart_b/services/bluetoothService.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
