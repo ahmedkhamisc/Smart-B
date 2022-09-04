@@ -106,17 +106,14 @@ void onStart(ServiceInstance service) async {
   print('hiiii');
   // bring to foreground
   Timer.periodic(const Duration(seconds: 1), (timer) async {
-    final hello = preferences.getString("hello");
-    print(hello);
     getBackgroundServices();
 
     if (service is AndroidServiceInstance) {
       service.setForegroundNotificationInfo(
-          title: 'Status', content: 'Services are on');
+          title: 'Don\'t forget your meds today', content: 'Service is on');
     }
 
     /// you can see this log in logcat
-    print('FLUTTER BACKGROUND SERVICE: ${DateTime.now()}');
   });
 }
 

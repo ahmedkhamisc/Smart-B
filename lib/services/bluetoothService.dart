@@ -8,10 +8,10 @@ class blutoothService extends StatefulWidget {
   String? text;
   blutoothService({this.text});
   @override
-  State<blutoothService> createState() => _blutoothServiceState();
+  State<blutoothService> createState() => blutoothServiceState();
 }
 
-class _blutoothServiceState extends State<blutoothService> {
+class blutoothServiceState extends State<blutoothService> {
   BluetoothConnection? connection;
   bool isConnecting = true;
   bool get isConnected => connection != null && connection!.isConnected;
@@ -83,7 +83,8 @@ class _blutoothServiceState extends State<blutoothService> {
             ElevatedButton(
                 onPressed: () {
                   setState(() {
-                    _sendMessage(myController.text);
+                    sendTimeWithNumberOfPills();
+                    //_sendMessage(myController.text);
                   });
                 },
                 child: const Text('Send'))
@@ -93,6 +94,8 @@ class _blutoothServiceState extends State<blutoothService> {
     );
   }
 
+  int count = 30;
+  String test = '';
   void _onDataReceived(Uint8List data) {
     //  data.removeWhere((element) => element == [10]);
     // Allocate buffer for parsed data
@@ -140,8 +143,12 @@ class _blutoothServiceState extends State<blutoothService> {
               : _messageBuffer + dataString);
         }
       }
+      if (_messageBuffer == 'confirmed') print(--count);
 
-      print(_messageBuffer);
+      print(_messageBuffer.trim());
+      setState(() {
+        test = _messageBuffer.trim();
+      });
     }
   }
 
@@ -173,5 +180,13 @@ class _blutoothServiceState extends State<blutoothService> {
         });
       }
     }
+  }
+
+  Future<void> sendTimeWithNumberOfPills() async {
+    _sendMessage('time');
+    await Future<void>.delayed(const Duration(seconds: 2));
+    _sendMessage('today1-1');
+    await Future<void>.delayed(const Duration(seconds: 2));
+    _sendMessage('today1-2');
   }
 }

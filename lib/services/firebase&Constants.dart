@@ -3,6 +3,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:smart_b/services/local_notification_service.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'bluetoothService.dart';
 
 DatabaseReference _dbref = FirebaseDatabase.instance.ref();
 Map<String, List<int>> daysData = {};
@@ -796,7 +797,7 @@ Future<void> getBackgroundServices() async {
   late String drugName;
   String doseTime = '';
   late int numOfPills;
-
+  blutoothServiceState service = blutoothServiceState();
   await _dbref
       .child("Drugs")
       .once()
@@ -954,6 +955,7 @@ Future<void> getBackgroundServices() async {
                   DateTime.now().month, DateTime.now().day, hour - 3, min);
               if (doseTime == now) {
                 if (i == 'Not displayed') {
+                  //service.sendTimeWithNumberOfPills();
                   print('seiii');
                   _dbref
                       .child("Drugs")
