@@ -15,11 +15,36 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_background_service_android/flutter_background_service_android.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await initializeService();
+  AwesomeNotifications().initialize(
+      // set the icon to null if you want to use the default app icon
+      'resource://drawable/logo',
+      [
+        NotificationChannel(
+            channelGroupKey: 'basic_channel_group',
+            channelKey: 'schedule_channel',
+            channelName: 'Basic notifications',
+            channelDescription: 'Notification channel',
+            importance: NotificationImportance.Max,
+            defaultColor: Color(0xFF44CBB1),
+            ledColor: Colors.white),
+        NotificationChannel(
+            channelGroupKey: 'basic_channel_group',
+            channelKey: 'button_channel',
+            channelName: 'Basic notifications',
+            channelDescription: 'Notification channel',
+            locked: true,
+            importance: NotificationImportance.Max,
+            defaultColor: Color(0xFF44CBB1),
+            ledColor: Colors.white)
+      ],
+      debug: true);
+  AwesomeNotifications().requestPermissionToSendNotifications();
   SharedPreferences prefs = await SharedPreferences.getInstance();
   var status1 = prefs.getBool('PisLoggedIn') ?? false;
   var status2 = prefs.getBool('RisLoggedIn') ?? false;

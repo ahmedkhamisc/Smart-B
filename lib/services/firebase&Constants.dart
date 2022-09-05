@@ -967,7 +967,10 @@ Future<void> getBackgroundServices() async {
                   print(hour);
                   print(min);
                   print(id);
-                  getNotification(key1, numOfPills, hour, min, 1, id);
+                  createNotificationWithButtons(
+                      id: id,
+                      title: key1,
+                      body: 'Hey there, it\'s time to take $numOfPills pills');
                   ++id;
                 }
               }
@@ -980,32 +983,6 @@ Future<void> getBackgroundServices() async {
       });
     }
   });
-}
-
-late final localNotificationService service;
-void initNotificationService() {
-  service = localNotificationService();
-  service.intialize();
-}
-
-bool isInit = false;
-Future<void> getNotification(
-    String name, int numOfPills, int hours, int min, int sec, int id) async {
-  print(isInit);
-  if (!isInit) {
-    initNotificationService();
-    isInit = true;
-  }
-  print('heree');
-  print(min);
-  await service.showScheduleNotification(
-    id: id,
-    title: name,
-    body: 'Hey there, it\'s time to take $numOfPills pills',
-    hours: hours,
-    min: min,
-    sec: sec,
-  );
 }
 
 class dailyReview extends StatefulWidget {
@@ -1188,4 +1165,16 @@ class _dailyReviewState extends State<dailyReview> {
       ),
     );
   }
+}
+
+int count = 0;
+List<String> advices = [
+  'Alcohol addiction leads to damage to brain cells and frequent strokes',
+  'Excessive coffee consumption is harmful to heart patients.',
+];
+void getDailyAdvice() {
+  createScheduleNotification(
+      id: count, title: 'Good afternoon', body: advices[count]);
+  count++;
+  if (count == 2) count = 0;
 }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:smart_b/services/local_notification_service.dart';
 import 'services/firebase&Constants.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'services/bluetoothService.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
+
 class test extends StatefulWidget {
   const test({Key? key}) : super(key: key);
 
@@ -10,6 +13,12 @@ class test extends StatefulWidget {
 }
 
 class _testState extends State<test> {
+  @override
+  void initState() {
+    AwesomeNotifications().requestPermissionToSendNotifications();
+    super.initState();
+  }
+
   final fifteenAgo = DateTime.now();
   @override
   Widget build(BuildContext context) {
@@ -19,7 +28,22 @@ class _testState extends State<test> {
         onPressed: () {
           setState(() {
             // getNotification('name', 1, 0, 39, 0);
-            blutoothService();
+            // blutoothService();
+            // createNotificationWithButtons(title: 'test', id: 0, body: 'gg');
+            // AwesomeNotifications().actionStream.listen(
+            //   (ReceivedAction receivedAction) {
+            //     if (receivedAction.buttonKeyPressed == 'Completed') {
+            //       print('com');
+            //     } else if (receivedAction.buttonKeyPressed == 'Skipped') {
+            //       print('skipp');
+            //     }
+            //
+            //     //Here if the user clicks on the notification itself
+            //     //without any button
+            //   },
+            // );
+
+            createScheduleNotification(id: 0, title: 'title', body: 'body');
           });
         },
         child: Text('click'),
