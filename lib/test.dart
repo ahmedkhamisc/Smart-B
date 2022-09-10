@@ -25,25 +25,16 @@ class _testState extends State<test> {
     return Scaffold(
       body: Center(
           child: TextButton(
-        onPressed: () {
+        onPressed: () async {
+          // createNotificationWithButtons(title: 'test', id: 0, body: 'gg');
+
           setState(() {
             // getNotification('name', 1, 0, 39, 0);
             // blutoothService();
-            // createNotificationWithButtons(title: 'test', id: 0, body: 'gg');
-            // AwesomeNotifications().actionStream.listen(
-            //   (ReceivedAction receivedAction) {
-            //     if (receivedAction.buttonKeyPressed == 'Completed') {
-            //       print('com');
-            //     } else if (receivedAction.buttonKeyPressed == 'Skipped') {
-            //       print('skipp');
-            //     }
-            //
-            //     //Here if the user clicks on the notification itself
-            //     //without any button
-            //   },
-            // );
 
-            createScheduleNotification(id: 0, title: 'title', body: 'body');
+            //  createScheduleNotification(id: 0, title: 'title', body: 'body');
+            //createNotificationWithButtons(id: 0, title: 'title', body: 'body');
+            // confirmed('confirmed');
           });
         },
         child: Text('click'),

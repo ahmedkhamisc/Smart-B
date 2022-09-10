@@ -26,7 +26,13 @@ void main() async {
       'resource://drawable/logo',
       [
         NotificationChannel(
-            channelGroupKey: 'basic_channel_group',
+            channelKey: 'basic_channel',
+            channelName: 'Basic notifications',
+            channelDescription: 'Notification channel',
+            importance: NotificationImportance.Max,
+            defaultColor: Color(0xFF44CBB1),
+            ledColor: Colors.white),
+        NotificationChannel(
             channelKey: 'schedule_channel',
             channelName: 'Basic notifications',
             channelDescription: 'Notification channel',
@@ -34,7 +40,6 @@ void main() async {
             defaultColor: Color(0xFF44CBB1),
             ledColor: Colors.white),
         NotificationChannel(
-            channelGroupKey: 'basic_channel_group',
             channelKey: 'button_channel',
             channelName: 'Basic notifications',
             channelDescription: 'Notification channel',

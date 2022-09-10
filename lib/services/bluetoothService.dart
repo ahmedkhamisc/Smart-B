@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:smart_b/services/local_notification_service.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class blutoothService extends StatefulWidget {
   String? text;
@@ -40,8 +42,18 @@ class blutoothServiceState extends State<blutoothService> {
         // If we didn't except this (no flag set), it means closing by remote.
         if (isDisconnecting) {
           print('Disconnecting locally!');
+          createBasicNotification(
+              id: 0,
+              title: 'Connection problem',
+              body:
+                  'Maybe your bluetooth is off or the box is far from the phone');
         } else {
           print('Disconnected remotely!');
+          createBasicNotification(
+              id: 0,
+              title: 'Connection problem',
+              body:
+                  'Maybe your bluetooth is off or the box is far from the phone');
         }
         if (this.mounted) {
           setState(() {});
@@ -50,6 +62,10 @@ class blutoothServiceState extends State<blutoothService> {
     }).catchError((error) {
       print('Cannot connect, exception occured');
       print(error);
+      createBasicNotification(
+          id: 0,
+          title: 'Connection problem',
+          body: 'Maybe your bluetooth is off or the box is far from the phone');
     });
   }
 
@@ -94,7 +110,9 @@ class blutoothServiceState extends State<blutoothService> {
     );
   }
 
-  int count = 30;
+  DatabaseReference _dbref = FirebaseDatabase.instance.ref();
+  late Iterable<DataSnapshot> drugs;
+
   String test = '';
   void _onDataReceived(Uint8List data) {
     //  data.removeWhere((element) => element == [10]);
@@ -143,7 +161,9 @@ class blutoothServiceState extends State<blutoothService> {
               : _messageBuffer + dataString);
         }
       }
-      if (_messageBuffer == 'confirmed') print(--count);
+      if (_messageBuffer.trim() == 'confirmed') {
+        confirmed('confirmed');
+      }
 
       print(_messageBuffer.trim());
       setState(() {
@@ -152,7 +172,7 @@ class blutoothServiceState extends State<blutoothService> {
     }
   }
 
-  void _sendMessage(String text) async {
+  void sendMessage(String text) async {
     text = text.trim();
 
     if (text.length > 0) {
@@ -183,10 +203,268 @@ class blutoothServiceState extends State<blutoothService> {
   }
 
   Future<void> sendTimeWithNumberOfPills() async {
-    _sendMessage('time');
-    await Future<void>.delayed(const Duration(seconds: 2));
-    _sendMessage('today1-1');
-    await Future<void>.delayed(const Duration(seconds: 2));
-    _sendMessage('today1-2');
+    print('hereeeeeeeeeeee');
   }
+  //   _sendMessage('time');
+  //   await Future<void>.delayed(const Duration(seconds: 2));
+  //   _sendMessage('today1-1');
+  //   await Future<void>.delayed(const Duration(seconds: 2));
+  //   _sendMessage('today1-2');
+  // }
+}
+
+Future<void> confirmed(String confirmed_orDrugname, {int? doseNumber}) async {
+  DatabaseReference _dbref = FirebaseDatabase.instance.ref();
+  late Iterable<DataSnapshot> drugs;
+  await _dbref
+      .child("Drugs")
+      .once()
+      .then((event) => drugs = event.snapshot.children);
+  if (confirmed_orDrugname == 'confirmed') {
+    drugs.forEach((element) {
+      if (element.child("Doses Times").hasChild("5")) {
+        for (int i = 1; i <= 5; ++i) {
+          int hour = int.parse(element
+              .child("Doses Times")
+              .child("$i")
+              .child("Hour")
+              .value
+              .toString());
+          int min = int.parse(element
+              .child("Doses Times")
+              .child("$i")
+              .child("Minute")
+              .value
+              .toString());
+          String day = DateTime.now().weekday == 7
+              ? 'Sunday'
+              : DateTime.now().weekday == 1
+                  ? 'Monday'
+                  : DateTime.now().weekday == 2
+                      ? 'Tuesday'
+                      : DateTime.now().weekday == 3
+                          ? 'Wednesday'
+                          : DateTime.now().weekday == 4
+                              ? 'Thursday'
+                              : DateTime.now().weekday == 5
+                                  ? 'Friday'
+                                  : 'Saturday';
+          if (DateTime.now().hour == hour &&
+              (DateTime.now().minute >= min &&
+                  DateTime.now().minute <= 15 + min) &&
+              element.child("Days").hasChild("$day")) {
+            _dbref
+                .child("Drugs")
+                .child("${element.child("Name").value}")
+                .child("Number of pills")
+                .set(int.parse(
+                        element.child("Number of pills").value.toString()) -
+                    int.parse(element
+                        .child("Doses Times")
+                        .child("$i")
+                        .child("Number of pills")
+                        .value
+                        .toString()));
+          }
+        }
+      } else if (element.child("Doses Times").hasChild("4")) {
+        for (int i = 1; i <= 4; ++i) {
+          int hour = int.parse(element
+              .child("Doses Times")
+              .child("$i")
+              .child("Hour")
+              .value
+              .toString());
+          int min = int.parse(element
+              .child("Doses Times")
+              .child("$i")
+              .child("Minute")
+              .value
+              .toString());
+          String day = DateTime.now().weekday == 7
+              ? 'Sunday'
+              : DateTime.now().weekday == 1
+                  ? 'Monday'
+                  : DateTime.now().weekday == 2
+                      ? 'Tuesday'
+                      : DateTime.now().weekday == 3
+                          ? 'Wednesday'
+                          : DateTime.now().weekday == 4
+                              ? 'Thursday'
+                              : DateTime.now().weekday == 5
+                                  ? 'Friday'
+                                  : 'Saturday';
+          if (DateTime.now().hour == hour &&
+              (DateTime.now().minute >= min &&
+                  DateTime.now().minute <= 15 + min) &&
+              element.child("Days").hasChild("$day")) {
+            _dbref
+                .child("Drugs")
+                .child("${element.child("Name").value}")
+                .child("Number of pills")
+                .set(int.parse(
+                        element.child("Number of pills").value.toString()) -
+                    int.parse(element
+                        .child("Doses Times")
+                        .child("$i")
+                        .child("Number of pills")
+                        .value
+                        .toString()));
+          }
+        }
+      } else if (element.child("Doses Times").hasChild("3")) {
+        for (int i = 1; i <= 3; ++i) {
+          int hour = int.parse(element
+              .child("Doses Times")
+              .child("$i")
+              .child("Hour")
+              .value
+              .toString());
+          int min = int.parse(element
+              .child("Doses Times")
+              .child("$i")
+              .child("Minute")
+              .value
+              .toString());
+          String day = DateTime.now().weekday == 7
+              ? 'Sunday'
+              : DateTime.now().weekday == 1
+                  ? 'Monday'
+                  : DateTime.now().weekday == 2
+                      ? 'Tuesday'
+                      : DateTime.now().weekday == 3
+                          ? 'Wednesday'
+                          : DateTime.now().weekday == 4
+                              ? 'Thursday'
+                              : DateTime.now().weekday == 5
+                                  ? 'Friday'
+                                  : 'Saturday';
+          if (DateTime.now().hour == hour &&
+              (DateTime.now().minute >= min &&
+                  DateTime.now().minute <= 15 + min) &&
+              element.child("Days").hasChild("$day")) {
+            _dbref
+                .child("Drugs")
+                .child("${element.child("Name").value}")
+                .child("Number of pills")
+                .set(int.parse(
+                        element.child("Number of pills").value.toString()) -
+                    int.parse(element
+                        .child("Doses Times")
+                        .child("$i")
+                        .child("Number of pills")
+                        .value
+                        .toString()));
+          }
+        }
+      } else if (element.child("Doses Times").hasChild("2")) {
+        for (int i = 1; i <= 2; ++i) {
+          int hour = int.parse(element
+              .child("Doses Times")
+              .child("$i")
+              .child("Hour")
+              .value
+              .toString());
+          int min = int.parse(element
+              .child("Doses Times")
+              .child("$i")
+              .child("Minute")
+              .value
+              .toString());
+          String day = DateTime.now().weekday == 7
+              ? 'Sunday'
+              : DateTime.now().weekday == 1
+                  ? 'Monday'
+                  : DateTime.now().weekday == 2
+                      ? 'Tuesday'
+                      : DateTime.now().weekday == 3
+                          ? 'Wednesday'
+                          : DateTime.now().weekday == 4
+                              ? 'Thursday'
+                              : DateTime.now().weekday == 5
+                                  ? 'Friday'
+                                  : 'Saturday';
+          if (DateTime.now().hour == hour &&
+              (DateTime.now().minute >= min &&
+                  DateTime.now().minute <= 15 + min) &&
+              element.child("Days").hasChild("$day")) {
+            _dbref
+                .child("Drugs")
+                .child("${element.child("Name").value}")
+                .child("Number of pills")
+                .set(int.parse(
+                        element.child("Number of pills").value.toString()) -
+                    int.parse(element
+                        .child("Doses Times")
+                        .child("$i")
+                        .child("Number of pills")
+                        .value
+                        .toString()));
+          }
+        }
+      } else {
+        int hour = int.parse(element
+            .child("Doses Times")
+            .child("1")
+            .child("Hour")
+            .value
+            .toString());
+        int min = int.parse(element
+            .child("Doses Times")
+            .child("1")
+            .child("Minute")
+            .value
+            .toString());
+        String day = DateTime.now().weekday == 7
+            ? 'Sunday'
+            : DateTime.now().weekday == 1
+                ? 'Monday'
+                : DateTime.now().weekday == 2
+                    ? 'Tuesday'
+                    : DateTime.now().weekday == 3
+                        ? 'Wednesday'
+                        : DateTime.now().weekday == 4
+                            ? 'Thursday'
+                            : DateTime.now().weekday == 5
+                                ? 'Friday'
+                                : 'Saturday';
+        if (DateTime.now().hour == hour &&
+            (DateTime.now().minute >= min &&
+                DateTime.now().minute <= 15 + min) &&
+            element.child("Days").hasChild("$day")) {
+          _dbref
+              .child("Drugs")
+              .child("${element.child("Name").value}")
+              .child("Number of pills")
+              .set(
+                  int.parse(element.child("Number of pills").value.toString()) -
+                      int.parse(element
+                          .child("Doses Times")
+                          .child("1")
+                          .child("Number of pills")
+                          .value
+                          .toString()));
+        }
+      }
+    });
+  } else {
+    drugs.forEach((element) {
+      if (element.child("Name").value.toString() == confirmed_orDrugname)
+        _dbref
+            .child("Drugs")
+            .child("$confirmed_orDrugname")
+            .child("Number of pills")
+            .set(int.parse(element.child("Number of pills").value.toString()) -
+                int.parse(element
+                    .child("Doses Times")
+                    .child("$doseNumber")
+                    .child("Number of pills")
+                    .value
+                    .toString()));
+    });
+  }
+}
+
+void gg() {
+  print(DateTime.sunday);
 }

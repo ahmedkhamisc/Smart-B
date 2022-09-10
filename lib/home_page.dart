@@ -175,6 +175,17 @@ class _homePageBodyState extends State<homePageBody> {
                               ConnectionState.waiting) {
                             return const CircularProgressIndicator();
                           }
+                          if (snapshot.data == null) {
+                            t = 1;
+                            return Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Center(
+                                  child: Text('No doses for today'),
+                                )
+                              ],
+                            );
+                          }
                           t = 1;
                           return snapshot.data!;
                         }),
@@ -307,65 +318,3 @@ final List<Widget> adviceList = [
     ),
   ),
 ];
-//   @override
-//   Widget build(BuildContext context) {
-//     return Container(
-//       margin: EdgeInsets.only(top: 5, bottom: 5),
-//       height: 75.0,
-//       decoration: const BoxDecoration(
-//         color: Color(0xFFEEEEEE),
-//         borderRadius: BorderRadius.all(
-//           Radius.circular(24.0),
-//         ),
-//       ),
-//       child: Row(
-//         children: [
-//           Container(
-//               margin: const EdgeInsets.only(left: 15, right: 5),
-//               child: Image.asset('images/pill.png')),
-//           Column(
-//             mainAxisAlignment: MainAxisAlignment.center,
-//             children: <Widget>[
-//               Text(
-//                 'Panadol',
-//                 style: TextStyle(fontSize: 15.0, fontWeight: FontWeight.bold),
-//               ),
-//               SizedBox(
-//                 height: 5.0,
-//               ),
-//               Text(
-//                 '04:00 PM',
-//                 style: TextStyle(fontSize: 13.0, color: Color(0xFF9B9B9B)),
-//               )
-//             ],
-//           ),
-//           Container(
-//             margin: EdgeInsets.only(left: 5, right: 5),
-//             child: Text(
-//               '.',
-//               style: TextStyle(
-//                   fontWeight: FontWeight.bold, color: Color(0xFF9B9B9B)),
-//             ),
-//           ),
-//           Container(
-//             margin: EdgeInsets.only(top: 5),
-//             child: Text(
-//               'Did you already take a pill?',
-//               style: TextStyle(
-//                 fontSize: 13.0,
-//                 color: Color(0xFF9B9B9B),
-//               ),
-//             ),
-//           ),
-//           Container(
-//             margin: EdgeInsets.only(top: 55, left: 30),
-//             child: Text(
-//               'Right now',
-//               style: TextStyle(fontSize: 10.0, color: Color(0xFF9B9B9B)),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }

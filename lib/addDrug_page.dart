@@ -92,7 +92,6 @@ class _addDrugPageState extends State<addDrugPage> {
             .child("$DrugName")
             .child("Doses per day")
             .set(dosesPerDay);
-        print(DosesTimesValues);
         for (int i = 1; i <= dosesPerDay; i++) {
           _dbref
               .child("Drugs")

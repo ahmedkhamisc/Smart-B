@@ -2,6 +2,17 @@ import 'package:awesome_notifications/awesome_notifications.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 
+Future<void> createBasicNotification({
+  required int id,
+  required String title,
+  required String body,
+}) async {
+  await AwesomeNotifications().createNotification(
+    content: NotificationContent(
+        id: id, channelKey: 'basic_channel', title: title, body: body),
+  );
+}
+
 Future<void> createScheduleNotification({
   required int id,
   required String title,
@@ -29,9 +40,15 @@ Future<void> createNotificationWithButtons({
         id: id, channelKey: 'button_channel', title: title, body: body),
     actionButtons: <NotificationActionButton>[
       NotificationActionButton(
-          key: 'Completed', label: 'Completed', color: Color(0xFF44CBB1)),
+          key: 'Completed',
+          label: 'Completed',
+          color: Color(0xFF44CBB1),
+          buttonType: ActionButtonType.KeepOnTop),
       NotificationActionButton(
-          key: 'Skipped', label: 'Skipped', color: Colors.grey),
+          key: 'Skipped',
+          label: 'Skipped',
+          color: Colors.red,
+          buttonType: ActionButtonType.KeepOnTop),
     ],
   );
 }
