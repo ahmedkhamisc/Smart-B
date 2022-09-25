@@ -1,18 +1,21 @@
-import 'package:firebase_core/firebase_core.dart';
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:awesome_select/awesome_select.dart';
 import 'package:flutter/services.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:smart_b/home_page.dart';
+import 'package:smart_b/services/firebase&Constants.dart';
 import 'package:timeline_tile/timeline_tile.dart';
 import 'package:firebase_database/firebase_database.dart';
 
-Map<int, List> DosesTimesValues = {};
+Map<int, List> dosesTimesValues = {};
 List<String> times = ['a', 'a', 'a', 'a', 'a'];
 
 class addDrugPage extends StatefulWidget {
-  const addDrugPage({Key? key}) : super(key: key);
-
+  String? name;
+  addDrugPage({Key? key, this.name}) : super(key: key);
   @override
   State<addDrugPage> createState() => _addDrugPageState();
 }
@@ -20,9 +23,49 @@ class addDrugPage extends StatefulWidget {
 class _addDrugPageState extends State<addDrugPage> {
   @override
   void initState() {
-    DosesTimesValues = {};
+    if (widget.name != null) {
+      getData(widget.name!);
+      daysData.forEach((key, value) {
+        if (key == widget.name) {
+          days = value;
+        }
+      });
+      dosesPerDayData.forEach((key, value) {
+        if (key == widget.name) {
+          dosesPerDay = value;
+        }
+        //timeDosesMakerData(dosesPerDay);
+      });
+    }
+    dosesTimesValues = {};
     times = ['a', 'a', 'a', 'a', 'a'];
     super.initState();
+  }
+
+  Future<void> getData(String name) async {
+    late Iterable<DataSnapshot> data;
+    await _dbref
+        .child("Drugs")
+        .once()
+        .then((event) => data = event.snapshot.children);
+    data.forEach((element) {
+      if (element.child("Name").value.toString() == widget.name) {
+        myNameController.text = element.child("Name").value.toString();
+        myPillsNumController.text =
+            element.child("Number of pills").value.toString();
+        myBottleController.text =
+            element.child("Medicine bottle number").value.toString();
+        dosesPerDay =
+            int.parse(element.child("Doses per day").value.toString());
+        var fireDays = element.child("Days").children;
+        // print(days);
+        fireDays.forEach((element) {
+          print(element.value.toString());
+          int day = int.parse(element.value.toString());
+          days!.add(day);
+        });
+      }
+    });
   }
 
   @override
@@ -31,13 +74,14 @@ class _addDrugPageState extends State<addDrugPage> {
     myNameController.dispose();
     myPillsNumController.dispose();
     myBottleController.dispose();
-    DosesTimesValues.clear();
+    dosesTimesValues.clear();
     drugNameCheck = false;
     numberOfPillsCheck = false;
     bottleCheck = false;
     timeCheck = false;
     timeNullCheck = false;
     daysCheck = false;
+    saveChangesCheck = false;
     times.clear();
     super.dispose();
   }
@@ -54,6 +98,7 @@ class _addDrugPageState extends State<addDrugPage> {
   bool timeCheck = false;
   bool timeNullCheck = false;
   bool daysCheck = false;
+  bool saveChangesCheck = false;
   List<S2Choice<int>> Doses = [
     S2Choice<int>(value: 1, title: '1 Doses'),
     S2Choice<int>(value: 2, title: '2 Doses'),
@@ -61,7 +106,7 @@ class _addDrugPageState extends State<addDrugPage> {
     S2Choice<int>(value: 4, title: '4 Doses'),
     S2Choice<int>(value: 5, title: '5 Doses'),
   ];
-  List<Object?>? days = [1];
+  List<Object?>? days = [];
   List<S2Choice<int>> Days = [
     S2Choice<int>(value: 1, title: 'Sunday'),
     S2Choice<int>(value: 2, title: 'Monday'),
@@ -71,11 +116,16 @@ class _addDrugPageState extends State<addDrugPage> {
     S2Choice<int>(value: 6, title: 'Friday'),
     S2Choice<int>(value: 7, title: 'Saturday'),
   ];
-
-  dbAddDrug(String DrugName, String NumOfPills, String bottleNumber,
-      int dosesPerDay) {
+  Future<void> dbAddDrug(String DrugName, String NumOfPills,
+      String bottleNumber, int dosesPerDay) async {
+    if (dosesPerDay <= 0 || dosesTimesValues.isEmpty) {
+      return;
+    }
     _dbref.child("Drugs").once().then((value) {
-      if (!value.snapshot.hasChild("$DrugName")) {
+      if (!value.snapshot.hasChild("$DrugName") || widget.name != null) {
+        if (widget.name != null) {
+          _dbref.child("Drugs").child("${widget.name}").remove();
+        }
         _dbref.child("Drugs").child("$DrugName").child("Name").set(DrugName);
         _dbref
             .child("Drugs")
@@ -95,32 +145,32 @@ class _addDrugPageState extends State<addDrugPage> {
         for (int i = 1; i <= dosesPerDay; i++) {
           _dbref
               .child("Drugs")
-              .child('$DrugName')
+              .child("$DrugName")
               .child("Doses Times")
               .child("$i")
               .child("Hour")
-              .set(DosesTimesValues[i]!.elementAt(0));
+              .set(dosesTimesValues[i]!.elementAt(0));
           _dbref
               .child("Drugs")
               .child("$DrugName")
               .child("Doses Times")
               .child("$i")
               .child("Minute")
-              .set(DosesTimesValues[i]!.elementAt(1));
+              .set(dosesTimesValues[i]!.elementAt(1));
           _dbref
               .child("Drugs")
               .child("$DrugName")
               .child("Doses Times")
               .child("$i")
               .child("period")
-              .set(DosesTimesValues[i]!.elementAt(2));
+              .set(dosesTimesValues[i]!.elementAt(2));
           _dbref
               .child("Drugs")
               .child("$DrugName")
               .child("Doses Times")
               .child("$i")
               .child("Number of pills")
-              .set(DosesTimesValues[i]!.elementAt(3));
+              .set(dosesTimesValues[i]!.elementAt(3));
           _dbref
               .child("Drugs")
               .child("$DrugName")
@@ -129,10 +179,10 @@ class _addDrugPageState extends State<addDrugPage> {
               .child("State")
               .set('Not displayed');
         }
-        for (var i in days!)
+        for (var i in days!) {
           _dbref
               .child("Drugs")
-              .child('$DrugName')
+              .child("$DrugName")
               .child("Days")
               .child(i == 1
                   ? "Sunday"
@@ -148,34 +198,48 @@ class _addDrugPageState extends State<addDrugPage> {
                                       ? "Friday"
                                       : "Saturday")
               .set(i);
+        }
+        showToast('Med added');
       } else {
-        _showMyDialog();
+        showToast('The medicine is already exist.');
       }
     });
   }
 
-  Future<void> _showMyDialog() async {
+  void showToast(String msg) {
+    Fluttertoast.showToast(
+        msg: msg,
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 1,
+        backgroundColor: const Color(0xFFEEEEEE),
+        textColor: Colors.black,
+        fontSize: 14.0);
+  }
+
+  Future<void> _showMyDialogExist(
+      {required String title, required String body}) async {
     return showDialog<void>(
       context: context,
       barrierDismissible: false, // user must tap button!
       builder: (BuildContext context) {
         return AlertDialog(
           title: Row(
-            children: const [
-              Icon(
+            children: [
+              const Icon(
                 Icons.error_outline,
                 color: Color(0xFF44CBB1),
               ),
-              SizedBox(
+              const SizedBox(
                 width: 5,
               ),
-              Text('Smart-B support'),
+              Text(title),
             ],
           ),
           content: SingleChildScrollView(
             child: ListBody(
-              children: const <Widget>[
-                Text('The medicine is already exist.'),
+              children: <Widget>[
+                Text(body),
               ],
             ),
           ),
@@ -195,36 +259,61 @@ class _addDrugPageState extends State<addDrugPage> {
     );
   }
 
+  Future<void> _showMyDialogSaveChanges(
+      {required String title, required String body}) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              const Icon(
+                Icons.error_outline,
+                color: Color(0xFF44CBB1),
+              ),
+              const SizedBox(
+                width: 5,
+              ),
+              Text(title),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text(body),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text(
+                'Yes',
+                style: TextStyle(color: Color(0xFF44CBB1)),
+              ),
+              onPressed: () {
+                saveChangesCheck = false;
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text(
+                'No',
+                style: TextStyle(color: Colors.grey),
+              ),
+              onPressed: () {
+                saveChangesCheck = true;
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    Column? TimeDosesMaker(int doses) {
-      Column maker = Column(
-        children: [
-          DosesTimes(
-            doseNumber: 1,
-            numOfDoses: doses,
-          )
-        ],
-      );
-      for (int i = 1; i < doses; i++)
-        maker.children.insert(
-            i,
-            DosesTimes(
-              doseNumber: i + 1,
-              numOfDoses: doses,
-            ));
-      for (int i = doses; i < 5; i++) {
-        times[i] = 'a';
-        DosesTimesValues.remove(i + 1);
-      }
-      print(DosesTimesValues);
-      // print(maker.children.length);
-      // print(times);
-      //print(DosesTimesValues);
-
-      return maker;
-    }
-
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -232,7 +321,7 @@ class _addDrugPageState extends State<addDrugPage> {
           onPressed: () {
             timeCheck = false;
             times.clear();
-            DosesTimesValues.clear();
+            dosesTimesValues.clear();
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => homePage()),
@@ -241,7 +330,7 @@ class _addDrugPageState extends State<addDrugPage> {
           },
         ),
         title: Text(
-          "Add Drug",
+          widget.name == null ? 'Add Med' : 'Edit Med',
           style: TextStyle(fontSize: 24),
         ),
         centerTitle: true,
@@ -255,7 +344,7 @@ class _addDrugPageState extends State<addDrugPage> {
                 buildDrugName(),
                 Visibility(
                     visible: drugNameCheck,
-                    child: Align(
+                    child: const Align(
                       alignment: Alignment.topLeft,
                       child: Text(
                         'Missing field!',
@@ -266,7 +355,7 @@ class _addDrugPageState extends State<addDrugPage> {
                 buildNumberOfPills(),
                 Visibility(
                     visible: numberOfPillsCheck,
-                    child: Align(
+                    child: const Align(
                       alignment: Alignment.topLeft,
                       child: Text(
                         'Missing field!',
@@ -274,11 +363,11 @@ class _addDrugPageState extends State<addDrugPage> {
                       ),
                     )),
 
-                SizedBox(height: 15),
+                const SizedBox(height: 15),
                 buildMedicineBottleNumber(),
                 Visibility(
                     visible: bottleCheck,
-                    child: Align(
+                    child: const Align(
                       alignment: Alignment.topLeft,
                       child: Text(
                         'Missing field!',
@@ -286,9 +375,9 @@ class _addDrugPageState extends State<addDrugPage> {
                       ),
                     )),
 
-                SizedBox(height: 15),
+                const SizedBox(height: 15),
                 Container(
-                  color: Color(0xFFEEEEEE),
+                  color: const Color(0xFFEEEEEE),
                   child: SmartSelect<int>.single(
                       modalType: S2ModalType.popupDialog,
                       modalStyle: S2ModalStyle(
@@ -307,10 +396,10 @@ class _addDrugPageState extends State<addDrugPage> {
                 const SizedBox(
                   height: 5,
                 ),
-                TimeDosesMaker(dosesPerDay)!,
+                timeDosesMaker(dosesPerDay)!,
                 Visibility(
                     visible: timeCheck,
-                    child: Align(
+                    child: const Align(
                       alignment: Alignment.topLeft,
                       child: Text(
                         'It\'s impossible to have two doses of the same medicine at the same time!',
@@ -319,7 +408,7 @@ class _addDrugPageState extends State<addDrugPage> {
                     )),
                 Visibility(
                     visible: timeNullCheck,
-                    child: Align(
+                    child: const Align(
                       alignment: Alignment.topLeft,
                       child: Text(
                         'Please set time!',
@@ -329,7 +418,7 @@ class _addDrugPageState extends State<addDrugPage> {
                 //DosesTimes(),
                 const SizedBox(height: 15),
                 Container(
-                  color: Color(0xFFEEEEEE),
+                  color: const Color(0xFFEEEEEE),
                   child: SmartSelect.multiple(
                     modalType: S2ModalType.popupDialog,
                     modalStyle: S2ModalStyle(
@@ -346,7 +435,7 @@ class _addDrugPageState extends State<addDrugPage> {
                 ),
                 Visibility(
                     visible: daysCheck,
-                    child: Align(
+                    child: const Align(
                       alignment: Alignment.topLeft,
                       child: Text(
                         'Please set at least one day!',
@@ -357,10 +446,10 @@ class _addDrugPageState extends State<addDrugPage> {
                 const SizedBox(height: 30),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                      primary: Color(0xff44CBB1),
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 50, vertical: 20)),
-                  child: Text(
+                      primary: const Color(0xff44CBB1),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 50, vertical: 20)),
+                  child: const Text(
                     'Save',
                     style: TextStyle(
                         color: Colors.white,
@@ -369,28 +458,70 @@ class _addDrugPageState extends State<addDrugPage> {
                   ),
                   onPressed: () => {
                     setState(() {
-                      check(TimeDosesMaker(dosesPerDay)!.children.length);
-                      //       print(isDrugExits(myNameController.text));
-                      if (DosesTimesValues != {}) {
-                        if (!drugNameCheck &&
-                            !numberOfPillsCheck &&
-                            !bottleCheck &&
-                            !timeCheck &&
-                            !timeNullCheck &&
-                            !daysCheck) {
-                          dbAddDrug(
-                              myNameController.text.trim(),
-                              myPillsNumController.text.trim(),
-                              myBottleController.text.trim(),
-                              dosesPerDay);
-                          Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => homePage()),
-                              (e) => false);
-                        }
-                      } else
-                        print(DosesTimesValues);
+                      check(timeDosesMaker(dosesPerDay)!.children.length);
+                      if (widget.name != null) {
+                        _showMyDialogSaveChanges(
+                                title: 'Smart-B support',
+                                body: 'Are you sure you want to save changes?')
+                            .then((_) => {
+                                  if (dosesTimesValues != {} &&
+                                      !saveChangesCheck)
+                                    {
+                                      if (!drugNameCheck &&
+                                          !numberOfPillsCheck &&
+                                          !bottleCheck &&
+                                          !timeCheck &&
+                                          !timeNullCheck &&
+                                          !daysCheck)
+                                        {
+                                          dbAddDrug(
+                                              myNameController.text.trim(),
+                                              myPillsNumController.text.trim(),
+                                              myBottleController.text.trim(),
+                                              dosesPerDay),
+                                          Navigator.pushAndRemoveUntil(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      const homePage()),
+                                              (e) => false)
+                                        }
+                                    }
+                                  else
+                                    {
+                                      print(dosesTimesValues),
+                                      Navigator.pushAndRemoveUntil(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const homePage()),
+                                          (e) => false)
+                                    }
+                                });
+                      } else {
+                        if (dosesTimesValues != {}) {
+                          print('save $dosesTimesValues');
+                          if (!drugNameCheck &&
+                              !numberOfPillsCheck &&
+                              !bottleCheck &&
+                              !timeCheck &&
+                              !timeNullCheck &&
+                              !daysCheck &&
+                              !saveChangesCheck) {
+                            dbAddDrug(
+                                myNameController.text.trim(),
+                                myPillsNumController.text.trim(),
+                                myBottleController.text.trim(),
+                                dosesPerDay);
+                            Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => const homePage()),
+                                (e) => false);
+                          }
+                        } else
+                          print(dosesTimesValues);
+                      }
                     }),
                   },
                 )
@@ -400,6 +531,56 @@ class _addDrugPageState extends State<addDrugPage> {
         ),
       ),
     );
+  }
+
+  Column? timeDosesMaker(int doses) {
+    Column maker;
+    if (widget.name != null) {
+      maker = Column(
+        children: [
+          dosesTimes(
+            doseNumber: 1,
+            dosesPerDay: doses,
+            drugName: widget.name,
+          )
+        ],
+      );
+      for (int i = 1; i < doses; i++)
+        maker.children.insert(
+            i,
+            dosesTimes(
+              doseNumber: i + 1,
+              dosesPerDay: doses,
+              drugName: widget.name,
+            ));
+    } else {
+      maker = Column(
+        children: [
+          dosesTimes(
+            doseNumber: 1,
+            dosesPerDay: doses,
+          )
+        ],
+      );
+      for (int i = 1; i < doses; i++) {
+        maker.children.insert(
+            i,
+            dosesTimes(
+              doseNumber: i + 1,
+              dosesPerDay: doses,
+            ));
+      }
+    }
+    for (int i = doses; i < 5; i++) {
+      times[i] = 'a';
+      dosesTimesValues.remove(i + 1);
+    }
+    print(dosesTimesValues);
+    // print(maker.children.length);
+    // print(times);
+    //print(DosesTimesValues);
+
+    return maker;
   }
 
   void check(int length) {
@@ -425,14 +606,14 @@ class _addDrugPageState extends State<addDrugPage> {
             timeCheck = false;
         if (timeCheck) break;
       }
-    if (DosesTimesValues.isEmpty)
+    if (dosesTimesValues.isEmpty)
       timeNullCheck = true;
-    else if (DosesTimesValues.length != length && length != 1)
+    else if (dosesTimesValues.length != length && length != 1)
       timeNullCheck = true;
     else
       timeNullCheck = false;
-
-    if (days == null)
+    print(days.toString());
+    if (days == null || days.toString() == '[]')
       daysCheck = true;
     else
       daysCheck = false;
@@ -467,18 +648,63 @@ class _addDrugPageState extends State<addDrugPage> {
   }
 }
 
-class DosesTimes extends StatefulWidget {
+class dosesTimes extends StatefulWidget {
   int doseNumber;
-  int numOfDoses;
-  DosesTimes({required this.doseNumber, required this.numOfDoses});
+  int dosesPerDay;
+  String? drugName;
+  dosesTimes(
+      {required this.doseNumber, required this.dosesPerDay, this.drugName});
   @override
-  State<DosesTimes> createState() => _DosesTimesState();
+  State<dosesTimes> createState() => _dosesTimesState();
 }
 
-class _DosesTimesState extends State<DosesTimes> {
+class _dosesTimesState extends State<dosesTimes> {
   TimeOfDay? newTime;
   int dropdownValue = 1;
   String timeText = 'Add time';
+  @override
+  void initState() {
+    if (widget.drugName != 'Add time') {
+      print('dosesTimesData $dosesTimeData');
+      print(widget.doseNumber);
+      dosesTimeData.forEach((key, value) {
+        if (key == widget.drugName) {
+          print(value);
+          int startVal = widget.doseNumber * 4 - 4 + 1;
+          int count1 = 1;
+          int count2 = 1;
+          String period = 'AM';
+          List doseVal = [];
+          //print(value);
+          for (var x in value) {
+            if (startVal == count1) {
+              if (count2 == 1) {
+                doseVal = doseVal + [x];
+                timeText = '$x:';
+                period = int.parse(x.toString()) >= 12 ? 'PM' : 'AM';
+              } else if (count2 == 2) {
+                doseVal = doseVal + [x] + [period];
+                timeText += '$x $period';
+              } else if (count2 == 3) {
+                doseVal = doseVal + [x];
+              } else if (count2 == 4) {
+                period = 'AM';
+                dosesTimesValues[widget.doseNumber] = doseVal;
+                doseVal = [];
+                print('herr $dosesTimesValues');
+                break;
+              }
+              ++count2;
+            } else {
+              ++count1;
+            }
+          }
+        }
+      });
+    }
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return TimelineTile(
@@ -532,7 +758,7 @@ class _DosesTimesState extends State<DosesTimes> {
             onChanged: (int? newValue) {
               setState(() {
                 dropdownValue = newValue!;
-                DosesTimesValues[widget.doseNumber] = [
+                dosesTimesValues[widget.doseNumber] = [
                   newTime!.hour,
                   newTime!.minute,
                   newTime!.period.toString().contains('am') ? 'AM' : 'PM',
@@ -542,7 +768,7 @@ class _DosesTimesState extends State<DosesTimes> {
                     ':' +
                     newTime!.minute.toString() +
                     ' ' +
-                    DosesTimesValues[widget.doseNumber]!.elementAt(2);
+                    dosesTimesValues[widget.doseNumber]!.elementAt(2);
                 //  print(DosesTimesValues);
               });
             },
@@ -565,7 +791,7 @@ class _DosesTimesState extends State<DosesTimes> {
     );
 
     setState(() {
-      DosesTimesValues[widget.doseNumber] = [
+      dosesTimesValues[widget.doseNumber] = [
         newTime!.hour,
         newTime!.minute,
         newTime!.period.toString().contains('am') ? 'AM' : 'PM',
@@ -575,12 +801,12 @@ class _DosesTimesState extends State<DosesTimes> {
           ':' +
           newTime!.minute.toString() +
           ' ' +
-          DosesTimesValues[widget.doseNumber]!.elementAt(2);
+          dosesTimesValues[widget.doseNumber]!.elementAt(2);
       times[widget.doseNumber - 1] = timeText;
       //print(DosesTimesValues.length);
-      for (int i = widget.numOfDoses; i < 5; i++) {
+      for (int i = widget.dosesPerDay; i < 5; i++) {
         times[i] = 'a';
-        DosesTimesValues.remove(i + 1);
+        dosesTimesValues.remove(i + 1);
       }
     });
   }

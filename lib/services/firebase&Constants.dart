@@ -1,10 +1,12 @@
 import 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smart_b/addDrug_page.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:smart_b/services/local_notification_service.dart';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
-import 'bluetoothService.dart';
 
 DatabaseReference _dbref = FirebaseDatabase.instance.ref();
 Map<String, List<int>> daysData = {};
@@ -12,17 +14,36 @@ Map<String, List> dosesTimeData = {};
 Map<String, int> pillsLeft = {};
 int id = 0;
 int countP = 0;
-Map<String, int> dosesPerDay = {};
+Map<String, int> dosesPerDayData = {};
+Map<String, int> bottleNumber = {};
+int _drugsChecked = 0;
+List<int> pillsNums = [0, 0, 0, 0];
+List<int> pillsNumsConfirmed = [];
+Map<String, List<int>> pillsConfirmed = {};
+bool fillOnceInDay = true;
+int count = 0;
+int countd = 0;
+List<String> advices = [
+  'Alcohol addiction leads to damage to brain cells and frequent strokes',
+  'Excessive coffee consumption is harmful to heart patients.',
+];
 Stream<Widget> getMedicineData({required Size size}) async* {
   while (true) {
     await Future<void>.delayed(const Duration(seconds: 1));
-    late Iterable<DataSnapshot> data;
+    late Iterable<DataSnapshot> drugsData;
+    late Iterable<DataSnapshot> drugsRecData;
+    late Iterable<DataSnapshot> foodRecData;
     late String drugName;
     String dosesTime = '';
     late String bottleNumber;
     late String numberOfPills;
     String days = '';
     late String dosesPerDay;
+    String drugType = 'drug';
+    String requiredAge = 'No data';
+    String recommendedDoses = 'No data';
+    String description = 'No data';
+    Map<String, List<String>> drugsRecInf = {};
     Column cards = Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [],
@@ -31,14 +52,73 @@ Stream<Widget> getMedicineData({required Size size}) async* {
     await _dbref
         .child("Drugs")
         .once()
-        .then((event) => data = event.snapshot.children);
-    data.forEach((element) {
+        .then((event) => drugsData = event.snapshot.children);
+
+    await _dbref
+        .child("Drugs_Recommended_Information")
+        .once()
+        .then((event) => drugsRecData = event.snapshot.children);
+
+    await _dbref
+        .child("Food_Supplements_Recommended_Information")
+        .once()
+        .then((event) => foodRecData = event.snapshot.children);
+    drugsData.forEach((element) {
       dosesPerDay = element.child("Doses per day").value.toString();
       bottleNumber = element.child("Medicine bottle number").value.toString();
       drugName = element.child("Name").value.toString();
       numberOfPills = element.child("Number of pills").value.toString();
       daysData[drugName] = [];
+      drugsRecInf[drugName] = [
+        drugType,
+        description,
+        recommendedDoses,
+        requiredAge
+      ];
       int sum = 0;
+
+      drugsRecData.forEach((element) {
+        drugType = 'drug';
+        String drugRecName = element.child("Name").value.toString();
+        if (drugName == drugRecName) {
+          requiredAge = element.child("Drug_Age_Limit").value.toString();
+          recommendedDoses =
+              element.child("Recommended_Drug_Dos").value.toString();
+          description = element.child("Drug_Description").value.toString();
+
+          drugsRecInf[drugName] = [
+            drugType,
+            description,
+            recommendedDoses,
+            requiredAge
+          ];
+          drugType = 'drug';
+          requiredAge = 'No data';
+          recommendedDoses = 'No data';
+          description = 'No data';
+        }
+      });
+      foodRecData.forEach((element) {
+        String drugRecName = element.child("Name").value.toString();
+        if (drugName == drugRecName) {
+          drugType = 'food';
+          requiredAge = element.child("Supp_Age_Limit").value.toString();
+          recommendedDoses =
+              element.child("Recommended_Supp_Dos").value.toString();
+          description = element.child("Supp_Description").value.toString();
+
+          drugsRecInf[drugName] = [
+            drugType,
+            description,
+            recommendedDoses,
+            requiredAge
+          ];
+          drugType = 'drug';
+          requiredAge = 'No data';
+          recommendedDoses = 'No data';
+          description = 'No data';
+        }
+      });
       if (element.child("Days").hasChild("Sunday")) {
         daysData[drugName] = daysData[drugName]! + [1];
         days += 'Sun, ';
@@ -216,15 +296,6 @@ Stream<Widget> getMedicineData({required Size size}) async* {
                     .child("Number of pills")
                     .value
               ] +
-              [element.child("Doses Times").child("$i").child("period").value] +
-              [element.child("Doses Times").child("$i").child("Minute").value] +
-              [
-                element
-                    .child("Doses Times")
-                    .child("$i")
-                    .child("Number of pills")
-                    .value
-              ] +
               [element.child("Doses Times").child("$i").child("period").value];
           dosesTime += element
                   .child("Doses Times")
@@ -302,6 +373,10 @@ Stream<Widget> getMedicineData({required Size size}) async* {
       cards.children.insert(
           cards.children.length,
           Card(
+            drugType: drugsRecInf[drugName]!.elementAt(0),
+            description: drugsRecInf[drugName]!.elementAt(1),
+            recommendedDoses: drugsRecInf[drugName]!.elementAt(2),
+            requiredAge: drugsRecInf[drugName]!.elementAt(3),
             size: size,
             drugName: drugName,
             dosesTime: dosesTime,
@@ -324,20 +399,28 @@ Stream<Widget> getDailyRevData() async* {
     late String drugName;
     String doseTime = '';
     late int numOfPills;
+    late String state;
     Column review = Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [],
     );
-    blutoothServiceState service = blutoothServiceState();
+    //blutoothServiceState service = blutoothServiceState();
     await _dbref
         .child("Drugs")
         .once()
         .then((event) => data = event.snapshot.children);
+    await _dbref
+        .child("Smart-b1")
+        .child("State")
+        .once()
+        .then((event) => state = event.snapshot.value.toString());
     data.forEach((element) {
       drugName = element.child("Name").value.toString();
       daysData[drugName] = [];
-      dosesPerDay[drugName] =
+      dosesPerDayData[drugName] =
           int.parse(element.child("Doses per day").value.toString());
+      bottleNumber[drugName] =
+          int.parse(element.child("Medicine bottle number").value.toString());
       if (element.child("Days").hasChild("Sunday")) {
         daysData[drugName] = daysData[drugName]! + [7];
       }
@@ -458,6 +541,7 @@ Stream<Widget> getDailyRevData() async* {
           int hour = 0;
           int min = 0;
           int doseNumber = 1;
+          //bottleNumber=
           if (key1 == key2)
             for (var i in value) {
               late String now = DateTime.now().hour.toString();
@@ -488,30 +572,53 @@ Stream<Widget> getDailyRevData() async* {
                     DateTime.now().month, DateTime.now().day, hour - 3, min);
                 if (doseTime == now) {
                   if (i == 'Not displayed') {
-                    _dbref
-                        .child("Drugs")
-                        .child("$key1")
-                        .child("Doses Times")
-                        .child("$doseNumber")
-                        .child("State")
-                        .set('Displayed');
+                    // bottleNumber.forEach((key, value) {
+                    //   if (key == key1) {
+                    //     pillsNums[value - 1] = numOfPills;
+                    //   }
+                    //   _dbref
+                    //       .child("Drugs")
+                    //       .child("$key1")
+                    //       .child("Doses Times")
+                    //       .child("$doseNumber")
+                    //       .child("State")
+                    //       .set('Displayed');
+                    // });
                   } else if (i == 'Displayed') {
-                    review.children.insert(
-                        review.children.length,
-                        dailyReview(
-                          dosesPerDay: dosesPerDay[key1]!,
-                          drugName: key1,
-                          doseTime: doseTime,
-                          state: 'Did you already take a $numOfPills pill?',
-                          checkVis: true,
-                          timeAgo: timeAgo,
-                          doseNumber: doseNumber,
-                        ));
+                    // if (state == 'alert') {
+                    //   createNotificationWithButtons(
+                    //           id: id,
+                    //           title: key1,
+                    //           body:
+                    //               'Hey there, it\'s time to take $numOfPills pills',
+                    //           doseNum: doseNumber)
+                    //       .then((value) {
+                    //     ++id;
+                    //     countd++;
+                    //   });
+                    // } else if (state == 'confirmed' && drugsChecked != 0) {
+                    //   confirmed(
+                    //       name: key1, doseNum: doseNumber, state: 'Completed');
+                    //   // globalState = {};
+                    //   // pillsNumsConfirmed = [];
+                    //   drugsChecked--;
+                    //   if (drugsChecked == 0) {
+                    //     _dbref.child("Smart-b1").child("State").set('time off');
+                    //   }
+                    // }
+                    // if (countd == drugsChecked &&
+                    //     state != 'confirmed' &&
+                    //     state != 'alerted') {
+                    //   print('heree1');
+                    //   _dbref.child("Smart-b1").child("State").set('alerted');
+                    //   countd = 0;
+                    // }
                   } else if (i == 'Completed') {
                     review.children.insert(
                         review.children.length,
                         dailyReview(
-                          dosesPerDay: dosesPerDay[key1]!,
+                          id: id,
+                          dosesPerDay: dosesPerDayData[key1]!,
                           drugName: key1,
                           doseTime: doseTime,
                           state: 'Completed',
@@ -523,7 +630,8 @@ Stream<Widget> getDailyRevData() async* {
                     review.children.insert(
                         review.children.length,
                         dailyReview(
-                          dosesPerDay: dosesPerDay[key1]!,
+                          id: id,
+                          dosesPerDay: dosesPerDayData[key1]!,
                           drugName: key1,
                           doseTime: doseTime,
                           state: 'Skipped',
@@ -533,23 +641,38 @@ Stream<Widget> getDailyRevData() async* {
                         ));
                   }
                 } else if (i == 'Displayed') {
-                  print('sss');
-                  review.children.insert(
-                      review.children.length,
-                      dailyReview(
-                        dosesPerDay: dosesPerDay[key1]!,
-                        drugName: key1,
-                        doseTime: doseTime,
-                        state: 'Did you already take a $numOfPills pill?',
-                        checkVis: true,
-                        timeAgo: timeAgo,
-                        doseNumber: doseNumber,
-                      ));
+                  // if (state == 'alert') {
+                  //   createNotificationWithButtons(
+                  //       id: id,
+                  //       title: key1,
+                  //       body: 'Hey there, it\'s time to take $numOfPills pills',
+                  //       doseNum: doseNumber);
+                  //
+                  //   ++id;
+                  //   countd++;
+                  // } else if (state == 'confirmed' && drugsChecked != 0) {
+                  //   confirmed(
+                  //       name: key1, doseNum: doseNumber, state: 'Completed');
+                  //   // globalState = {};
+                  //   // pillsNumsConfirmed = [];
+                  //   drugsChecked--;
+                  //   if (drugsChecked == 0) {
+                  //     _dbref.child("Smart-b1").child("State").set('time off');
+                  //   }
+                  // }
+                  // if (countd == drugsChecked &&
+                  //     state != 'confirmed' &&
+                  //     state != 'alerted') {
+                  //   print('heree2');
+                  //   _dbref.child("Smart-b1").child("State").set('alerted');
+                  //   countd = 0;
+                  // }
                 } else if (i == 'Completed') {
                   review.children.insert(
                       review.children.length,
                       dailyReview(
-                        dosesPerDay: dosesPerDay[key1]!,
+                        id: id,
+                        dosesPerDay: dosesPerDayData[key1]!,
                         drugName: key1,
                         doseTime: doseTime,
                         state: 'Completed',
@@ -561,7 +684,8 @@ Stream<Widget> getDailyRevData() async* {
                   review.children.insert(
                       review.children.length,
                       dailyReview(
-                        dosesPerDay: dosesPerDay[key1]!,
+                        id: id,
+                        dosesPerDay: dosesPerDayData[key1]!,
                         drugName: key1,
                         doseTime: doseTime,
                         state: 'Skipped',
@@ -599,22 +723,30 @@ Stream<Widget> getDailyRevData() async* {
   }
 }
 
-bool fillOnceInDay = true;
 Future<void> getBackgroundServices() async {
   late Iterable<DataSnapshot> data;
   late String drugName;
   String doseTime = '';
   late String numberOfPillsPublic;
   late int numberOfPillsDoses;
-  blutoothServiceState service = blutoothServiceState();
+  late String state;
+  bool isAlert = false;
   await _dbref
       .child("Drugs")
       .once()
       .then((event) => data = event.snapshot.children);
+  await _dbref
+      .child("Smart-b1")
+      .child("State")
+      .once()
+      .then((event) => state = event.snapshot.value.toString());
   data.forEach((element) {
     drugName = element.child("Name").value.toString();
     numberOfPillsPublic = element.child("Number of pills").value.toString();
+    pillsConfirmed[drugName] = [int.parse(numberOfPillsPublic)];
     daysData[drugName] = [];
+    bottleNumber[drugName] =
+        int.parse(element.child("Medicine bottle number").value.toString());
     if (fillOnceInDay) pillsLeft[drugName] = 0;
     if (pillsLeft.isNotEmpty &&
         int.parse(numberOfPillsPublic) <= 5 &&
@@ -785,7 +917,6 @@ Future<void> getBackgroundServices() async {
                   DateTime.now().month, DateTime.now().day, hour - 3, min);
               if (doseTime == now) {
                 if (i == 'Not displayed') {
-                  service.sendTimeWithNumberOfPills();
                   print('seiii');
                   _dbref
                       .child("Drugs")
@@ -794,15 +925,71 @@ Future<void> getBackgroundServices() async {
                       .child("$doseNumber")
                       .child("State")
                       .set('Displayed');
-                  print(hour);
-                  print(min);
-                  print(id);
+                  bottleNumber.forEach((key, value) {
+                    if (key == key1) {
+                      pillsNums[value - 1] = numberOfPillsDoses;
+                    }
+                  });
+                } else if (i == 'Displayed') {
+                  if (state == 'alert') {
+                    isAlert = true;
+                    createNotificationWithButtons(
+                        id: id,
+                        title: key1,
+                        body:
+                            'Hey there, it\'s time to take $numberOfPillsDoses pills',
+                        doseNum: doseNumber);
+                    id++;
+                    ++countd;
+                  } else if (state == 'confirmed' &&
+                      _drugsChecked > 0 &&
+                      !isAlert) {
+                    confirmed(
+                        name: key1, doseNum: doseNumber, state: 'Completed');
+
+                    --_drugsChecked;
+                    _drugsChecked == 0
+                        ? {
+                            setLifeCycleState(state: 'time off'),
+                          }
+                        : {};
+                  }
+                  if (countd == _drugsChecked &&
+                      state != 'confirmed' &&
+                      state != 'alerted') {
+                    print('fff $_drugsChecked');
+                    _dbref.child("Smart-b1").child("State").set('alerted');
+                    countd = 0;
+                  }
+                }
+              } else if (i == 'Displayed') {
+                if (state == 'alert') {
+                  isAlert = true;
                   createNotificationWithButtons(
                       id: id,
                       title: key1,
                       body:
-                          'Hey there, it\'s time to take $numberOfPillsDoses pills');
+                          'Hey there, it\'s time to take $numberOfPillsDoses pills',
+                      doseNum: doseNumber);
                   ++id;
+                  countd++;
+                } else if (state == 'confirmed' &&
+                    _drugsChecked > 0 &&
+                    !isAlert) {
+                  confirmed(
+                      name: key1, doseNum: doseNumber, state: 'Completed');
+                  --_drugsChecked;
+                  _drugsChecked == 0
+                      ? {
+                          setLifeCycleState(state: 'time off'),
+                        }
+                      : {};
+                }
+                if (countd == _drugsChecked &&
+                    state != 'confirmed' &&
+                    state != 'alerted') {
+                  _dbref.child("Smart-b1").child("State").set('alerted');
+                  countd = 0;
                 }
               }
               doseTime = '';
@@ -814,18 +1001,93 @@ Future<void> getBackgroundServices() async {
       });
     }
   });
+  if (pillsNums.contains(1) || pillsNums.contains(2) || pillsNums.contains(3)) {
+    _drugsChecked = 0;
+    for (var element in pillsNums) {
+      element != 0 ? _drugsChecked++ : {};
+    }
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setInt("drugsChecked", _drugsChecked);
+    timeAll(pillsNums: pillsNums);
+    // pillsNumsConfirmed = pillsNums;
+    pillsNums = [0, 0, 0, 0];
+  }
+  if (state == 'confirmed') {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setInt("drugsChecked", 0);
+    _drugsChecked = 0;
+  }
 }
 
-int count = 0;
-List<String> advices = [
-  'Alcohol addiction leads to damage to brain cells and frequent strokes',
-  'Excessive coffee consumption is harmful to heart patients.',
-];
 void getDailyAdvice() {
   createScheduleNotification(
       id: count, title: 'Good afternoon', body: advices[count]);
   count++;
   if (count == 2) count = 0;
+}
+
+Future<void> confirmed(
+    {required String name, required int doseNum, required String state}) async {
+  String numOfPillsD = await _dbref
+      .child("Drugs")
+      .child("$name")
+      .child("Doses Times")
+      .child("$doseNum")
+      .child("Number of pills")
+      .once()
+      .then((value) => value.snapshot.value.toString());
+  String numOfPillsP = await _dbref
+      .child("Drugs")
+      .child("$name")
+      .child("Number of pills")
+      .once()
+      .then((value) => value.snapshot.value.toString());
+  state == 'Completed'
+      ? {
+          _dbref
+              .child("Drugs")
+              .child("$name")
+              .child("Doses Times")
+              .child("$doseNum")
+              .child("State")
+              .set('Completed'),
+          _dbref
+              .child("Drugs")
+              .child("$name")
+              .child("Number of pills")
+              .set(int.parse(numOfPillsP) - int.parse(numOfPillsD)),
+        }
+      : {
+          _dbref
+              .child("Drugs")
+              .child("$name")
+              .child("Doses Times")
+              .child("$doseNum")
+              .child("State")
+              .set('Skipped'),
+        };
+}
+
+Future<void> timeAll({required List<int> pillsNums}) async {
+  print(pillsNums);
+  _dbref.child("Smart-b1").child("Bottle1").set('dis${pillsNums[0]}');
+  _dbref.child("Smart-b1").child("Bottle2").set('dis${pillsNums[1]}');
+  _dbref.child("Smart-b1").child("Bottle3").set('dis${pillsNums[2]}');
+  _dbref.child("Smart-b1").child("Bottle4").set('dis${pillsNums[3]}');
+  _dbref.child("Smart-b1").child("State").set('TimeAll');
+}
+
+Future<void> setLifeCycleState({required String state}) async {
+  _dbref.child("Smart-b1").child("State").set(state);
+
+  state == 'time off'
+      ? {
+          _dbref.child("Smart-b1").child("Bottle1").set('dis'),
+          _dbref.child("Smart-b1").child("Bottle2").set('dis'),
+          _dbref.child("Smart-b1").child("Bottle3").set('dis'),
+          _dbref.child("Smart-b1").child("Bottle4").set('dis'),
+        }
+      : {};
 }
 
 //classes
@@ -837,6 +1099,7 @@ class dailyReview extends StatefulWidget {
   DateTime timeAgo;
   int doseNumber;
   int dosesPerDay;
+  int id;
   dailyReview(
       {required this.drugName,
       required this.doseTime,
@@ -844,13 +1107,14 @@ class dailyReview extends StatefulWidget {
       required this.checkVis,
       required this.timeAgo,
       required this.doseNumber,
-      required this.dosesPerDay});
+      required this.dosesPerDay,
+      required this.id});
   @override
   State<dailyReview> createState() => _dailyReviewState();
 }
 
 class _dailyReviewState extends State<dailyReview> {
-  blutoothServiceState service = blutoothServiceState();
+  //blutoothServiceState service = blutoothServiceState();
   final Text s = const Text(
     'For your health, don\'t miss your dose ',
     style: TextStyle(
@@ -905,6 +1169,57 @@ class _dailyReviewState extends State<dailyReview> {
       }
     }
 
+    if (widget.state.contains('Did')) {
+      globalState.forEach((key, value) {
+        if (key == widget.drugName) {
+          if (value == 'Completed') {
+            widget.checkVis = false;
+            widget.checkVis = false;
+            _dbref
+                .child("Drugs")
+                .child("${widget.drugName}")
+                .child("Doses Times")
+                .child("${widget.doseNumber}")
+                .child("State")
+                .set('Completed');
+            _dbref
+                .child("Drugs")
+                .child("${widget.drugName}")
+                .child("Number of pills")
+                .set(pillsConfirmed[widget.drugName]!.elementAt(0) -
+                    pillsConfirmed[widget.drugName]!.elementAt(1));
+            _drugsChecked--;
+            AwesomeNotifications().cancel(widget.id);
+            if (_drugsChecked == 0) {
+              _dbref.child("Smart-b1").child("State").set('completed');
+              _dbref.child("Smart-b1").child("Bottle1").set('dis0');
+              _dbref.child("Smart-b1").child("Bottle2").set('dis0');
+              _dbref.child("Smart-b1").child("Bottle3").set('dis0');
+              _dbref.child("Smart-b1").child("Bottle4").set('dis0');
+              globalState = {};
+            }
+          } else {
+            widget.checkVis = false;
+            _dbref
+                .child("Drugs")
+                .child("${widget.drugName}")
+                .child("Doses Times")
+                .child("${widget.doseNumber}")
+                .child("State")
+                .set('Skipped');
+            _drugsChecked--;
+            if (_drugsChecked == 0) {
+              _dbref.child("Smart-b1").child("State").set('completed');
+              _dbref.child("Smart-b1").child("Bottle1").set('dis0');
+              _dbref.child("Smart-b1").child("Bottle2").set('dis0');
+              _dbref.child("Smart-b1").child("Bottle3").set('dis0');
+              _dbref.child("Smart-b1").child("Bottle4").set('dis0');
+              globalState = {};
+            }
+          }
+        }
+      });
+    }
     return Container(
       margin: EdgeInsets.only(top: 5, bottom: 5),
       height: 70.0,
@@ -953,7 +1268,7 @@ class _dailyReviewState extends State<dailyReview> {
           ),
           Container(
             margin: EdgeInsets.only(left: 5, right: 5),
-            child: Text(
+            child: const Text(
               '.',
               style: TextStyle(
                   fontWeight: FontWeight.bold, color: Color(0xFF9B9B9B)),
@@ -968,7 +1283,7 @@ class _dailyReviewState extends State<dailyReview> {
                     : stateS,
           ),
           Container(
-            margin: EdgeInsets.only(right: 5),
+            margin: const EdgeInsets.only(right: 5),
             child: Visibility(
                 visible: widget.checkVis,
                 child: Flex(
@@ -985,17 +1300,47 @@ class _dailyReviewState extends State<dailyReview> {
                               .child("${widget.doseNumber}")
                               .child("State")
                               .set('Completed');
-                          confirmed(widget.drugName,
-                              doseNumber: widget.doseNumber);
-                          service.sendMessage('completed');
+                          _drugsChecked--;
+                          _dbref
+                              .child("Drugs")
+                              .child("${widget.drugName}")
+                              .child("Number of pills")
+                              .set(pillsConfirmed[widget.drugName]!
+                                      .elementAt(0) -
+                                  pillsConfirmed[widget.drugName]!
+                                      .elementAt(1));
+                          if (_drugsChecked == 0) {
+                            _dbref
+                                .child("Smart-b1")
+                                .child("State")
+                                .set('completed');
+                            _dbref
+                                .child("Smart-b1")
+                                .child("Bottle1")
+                                .set('dis0');
+                            _dbref
+                                .child("Smart-b1")
+                                .child("Bottle2")
+                                .set('dis0');
+                            _dbref
+                                .child("Smart-b1")
+                                .child("Bottle3")
+                                .set('dis0');
+                            _dbref
+                                .child("Smart-b1")
+                                .child("Bottle4")
+                                .set('dis0');
+                            globalState = {};
+                          }
+                          AwesomeNotifications().cancel(widget.id);
                         });
                       },
-                      child: Icon(
+                      child: const Icon(
                         Icons.check,
                         color: Color(0xFF44CBB1),
                       ),
                     ),
-                    SizedBox(
+                    const SizedBox(
                       width: 3,
                     ),
                     InkWell(
@@ -1009,10 +1354,34 @@ class _dailyReviewState extends State<dailyReview> {
                               .child("${widget.doseNumber}")
                               .child("State")
                               .set('Skipped');
-                          service.sendMessage('skipped');
+                          AwesomeNotifications().cancel(widget.id);
+                          _drugsChecked--;
+                          if (_drugsChecked == 0) {
+                            _dbref
+                                .child("Smart-b1")
+                                .child("State")
+                                .set('completed');
+                            _dbref
+                                .child("Smart-b1")
+                                .child("Bottle1")
+                                .set('dis0');
+                            _dbref
+                                .child("Smart-b1")
+                                .child("Bottle2")
+                                .set('dis0');
+                            _dbref
+                                .child("Smart-b1")
+                                .child("Bottle3")
+                                .set('dis0');
+                            _dbref
+                                .child("Smart-b1")
+                                .child("Bottle4")
+                                .set('dis0');
+                            globalState = {};
+                          }
                         });
                       },
-                      child: Icon(
+                      child: const Icon(
                         Icons.clear,
                         color: Colors.black45,
                       ),
@@ -1021,10 +1390,10 @@ class _dailyReviewState extends State<dailyReview> {
                 )),
           ),
           Container(
-            margin: EdgeInsets.only(top: 5, right: 5),
+            margin: const EdgeInsets.only(top: 5, right: 5),
             child: Text(
               timeago.format(widget.timeAgo, locale: 'en_short'),
-              style: TextStyle(fontSize: 12.0, color: Color(0xFF9B9B9B)),
+              style: const TextStyle(fontSize: 12.0, color: Color(0xFF9B9B9B)),
             ),
           ),
         ],
@@ -1040,182 +1409,197 @@ class Card extends StatelessWidget {
       required this.dosesTime,
       required this.bottleNumber,
       required this.numberOfPills,
-      required this.days});
+      required this.days,
+      required this.requiredAge,
+      required this.recommendedDoses,
+      required this.description,
+      required this.drugType});
   final Size size;
   String drugName;
   String dosesTime;
   String bottleNumber;
   String numberOfPills;
   String days;
-
+  String requiredAge;
+  String recommendedDoses;
+  String description;
+  String drugType;
   @override
   Widget build(BuildContext context) {
-    return Container(
-        margin:
-            EdgeInsets.symmetric(horizontal: size.width * 0.05, vertical: 10),
-        padding: EdgeInsets.only(
-            left: size.width * 0.05,
-            bottom: size.height * 0.015,
-            top: size.height * 0.015),
-        decoration: const BoxDecoration(
-          color: Color(0xFF44CBB1),
-          borderRadius: BorderRadius.all(
-            Radius.circular(28),
-          ),
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: size.width * 0.56,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Image.asset("images/pills-bottle.png"),
-                      SizedBox(
-                        width: 5,
-                      ),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            drugName,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          Text(
-                            'headache treatment',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        height: size.height * 0.02,
-                      ),
-                      const Text(
-                        'Time per doses:',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        dosesTime,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: Colors.black,
-                        ),
-                      ),
-                      SizedBox(
-                        height: size.height * 0.01,
-                      ),
-                      const Divider(
-                        color: Colors.black,
-                        indent: 2,
-                        endIndent: 2,
-                        height: 10,
-                      ),
-                      SizedBox(
-                        height: size.height * 0.01,
-                      ),
-                      Text(
-                        'Bottle Number : $bottleNumber',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: Colors.black,
-                        ),
-                      ),
-                      Text(
-                        'Number of pills : $numberOfPills',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: Colors.black,
-                        ),
-                      ),
-                      Text(
-                        'Days : $days',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: Colors.black,
-                        ),
-                      ),
-                      SizedBox(
-                        height: size.height * 0.01,
-                      ),
-                      const Divider(
-                        color: Colors.black,
-                        indent: 2,
-                        endIndent: 2,
-                        height: 10,
-                      ),
-                      const SizedBox(
-                        height: 2,
-                      ),
-                      Text(
-                        'Recommended: 3 Times/d',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: Colors.black45,
-                        ),
-                      ),
-                      const Text(
-                        'Required age : +13',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: Colors.black45,
-                        ),
-                      ),
-                      const Text(
-                        'Dose time: after eating',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: Colors.black45,
-                        ),
-                      )
-                    ],
-                  ),
-                ],
-              ),
+    return InkWell(
+      onTap: () {
+        print('Edit');
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => addDrugPage(
+                    name: drugName,
+                  )),
+        );
+      },
+      child: Container(
+          margin:
+              EdgeInsets.symmetric(horizontal: size.width * 0.05, vertical: 10),
+          padding: EdgeInsets.only(
+              left: size.width * 0.05,
+              bottom: size.height * 0.015,
+              top: size.height * 0.015),
+          decoration: const BoxDecoration(
+            color: Color(0xFF44CBB1),
+            borderRadius: BorderRadius.all(
+              Radius.circular(28),
             ),
-            SizedBox(
-                width: size.width * 0.25,
-                child: Center(
-                  child: IconButton(
-                      onPressed: () {
-                        if (drugName != '')
-                          _dbref.child("Drugs").child("$drugName").remove();
-                      },
-                      icon: Icon(
-                        Icons.clear,
-                        color: Colors.red,
-                        size: 50,
-                      )),
-                ))
-          ],
-        ));
+          ),
+          child: Row(
+            children: [
+              SizedBox(
+                width: size.width * 0.56,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Image.asset(drugType == 'drug'
+                            ? "images/pills-bottle.png"
+                            : "images/herbal.png"),
+                        SizedBox(
+                          width: 5,
+                        ),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              drugName,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                            Text(
+                              description,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          height: size.height * 0.02,
+                        ),
+                        const Text(
+                          'Time per doses:',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          dosesTime,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.black,
+                          ),
+                        ),
+                        SizedBox(
+                          height: size.height * 0.01,
+                        ),
+                        const Divider(
+                          color: Colors.black,
+                          indent: 2,
+                          endIndent: 2,
+                          height: 10,
+                        ),
+                        SizedBox(
+                          height: size.height * 0.01,
+                        ),
+                        Text(
+                          'Bottle Number : $bottleNumber',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.black,
+                          ),
+                        ),
+                        Text(
+                          'Number of pills : $numberOfPills',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.black,
+                          ),
+                        ),
+                        Text(
+                          'Days : $days',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.black,
+                          ),
+                        ),
+                        SizedBox(
+                          height: size.height * 0.01,
+                        ),
+                        const Divider(
+                          color: Colors.black,
+                          indent: 2,
+                          endIndent: 2,
+                          height: 10,
+                        ),
+                        const SizedBox(
+                          height: 2,
+                        ),
+                        Text(
+                          'Recommended: $recommendedDoses',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.black45,
+                          ),
+                        ),
+                        Text(
+                          'Required age : $requiredAge',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.black45,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(
+                  width: size.width * 0.25,
+                  child: Center(
+                    child: IconButton(
+                        onPressed: () {
+                          if (drugName != '')
+                            _dbref.child("Drugs").child("$drugName").remove();
+                        },
+                        icon: Icon(
+                          Icons.clear,
+                          color: Colors.red,
+                          size: 50,
+                        )),
+                  ))
+            ],
+          )),
+    );
   }
 }
+
+Map<String, String> globalState = {};

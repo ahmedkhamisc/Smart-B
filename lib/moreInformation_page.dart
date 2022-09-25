@@ -34,7 +34,9 @@ class _moreInformationPageState extends State<moreInformationPage> {
                     stream: getMedicineData(size: size),
                     builder: (context, AsyncSnapshot<Widget> snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const CircularProgressIndicator();
+                        return const CircularProgressIndicator(
+                          color: Color(0xFF44CBB1),
+                        );
                       }
                       return snapshot.data!;
                     }),
