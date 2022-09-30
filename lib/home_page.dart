@@ -1,3 +1,4 @@
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'moreInformation_page.dart';
@@ -19,7 +20,7 @@ class _homePageState extends State<homePage>
   final List _pagesBody = [
     const homePageBody(),
     addDrugPage(),
-    const moreInformationPage(),
+    moreInformationPage(),
   ];
   late final TabController controller;
   Color indicatorColor = Color(0xFF44CBB1);
@@ -177,13 +178,8 @@ class _homePageBodyState extends State<homePageBody> {
                       onTap: () {
                         setState(() {
                           _showMyDialogLogout(
-                                  title: 'Smart-B support',
-                                  body: 'Are you sure you want to logout?')
-                              .then((_) {
-                            if (!checkLogout) {
-                              logout();
-                            }
-                          });
+                              title: 'Smart-B support',
+                              body: 'Are you sure you want to logout?');
                         });
                       },
                       child: const Icon(
@@ -238,6 +234,8 @@ class _homePageBodyState extends State<homePageBody> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setBool("PisLoggedIn", false);
     prefs.setBool("RisLoggedIn", false);
+    DatabaseReference _dbref = FirebaseDatabase.instance.ref();
+    _dbref.child("Users").child("current").set('no one');
   }
 
   Future<void> _showMyDialogLogout(
@@ -273,10 +271,13 @@ class _homePageBodyState extends State<homePageBody> {
                 style: TextStyle(color: Color(0xFF44CBB1)),
               ),
               onPressed: () {
-                Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (builder) => const GetStarted()),
-                    (route) => false);
+                logout().then((value) {
+                  Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                          builder: (builder) => const GetStarted()),
+                      (route) => false);
+                });
               },
             ),
             TextButton(

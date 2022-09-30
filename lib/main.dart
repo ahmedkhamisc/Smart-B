@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:awesome_notifications/android_foreground_service.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
@@ -11,7 +12,6 @@ import 'get_started_page.dart';
 import 'home_page.dart';
 import 'addDrug_page.dart';
 import 'moreInformation_page.dart';
-import 'moreInformation_relatedPerson_page.dart';
 import 'home_relatedPerson_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,6 +20,7 @@ import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:workmanager/workmanager.dart';
 
 const fetchBackground = "fetchBackground";
+
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     switch (task) {
@@ -92,7 +93,10 @@ Future<void> main() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   var status1 = prefs.getBool('PisLoggedIn') ?? false;
   var status2 = prefs.getBool('RisLoggedIn') ?? false;
-
+  print('1= $status1');
+  print('2= $status2');
+  print('getP= ${prefs.getBool('PisLoggedIn')}');
+  print('getR= ${prefs.getBool('RisLoggedIn')}');
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
       .then((_) {
     runApp(MaterialApp(
@@ -109,11 +113,10 @@ Future<void> main() async {
             backgroundColor: Color(0xFF44CBB1),
           ),
         ),
-        home: homePage()));
+        home: status1 == true
+            ? const homePage()
+            : status2 == true
+                ? const homeRelatedPersonPage()
+                : const GetStarted()));
   });
-  // status1 == true
-  //     ? const homePage()
-  //     : status2 == true
-  //         ? const homeRelatedPersonPage()
-  //         : const GetStarted()));
 }

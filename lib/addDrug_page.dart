@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
@@ -23,7 +24,93 @@ class addDrugPage extends StatefulWidget {
 class _addDrugPageState extends State<addDrugPage> {
   @override
   void initState() {
+    if (widget.name == null) {
+      bottlesNumbers.length == 4
+          ? {
+              checkTypes = [S2Choice<int>(value: 1, title: 'App only')]
+            }
+          : {
+              for (int i = 1; i <= 4; i++)
+                {
+                  if (!bottlesNumbers.values.contains(i))
+                    {
+                      bottles.add(S2Choice<int>(
+                          value: i,
+                          title: i == 1
+                              ? 'One'
+                              : i == 2
+                                  ? 'Two'
+                                  : i == 3
+                                      ? 'Three'
+                                      : 'Four')),
+                      bottleNumber = bottles.first.value
+                    }
+                }
+            };
+    }
     if (widget.name != null) {
+      checkType = medsCheckTypes[widget.name]!;
+      isAppType = checkType == 1 ? true : false;
+      if (checkType == 2) {
+        late S2Choice<int> temp;
+        bottlesNumbers.forEach((key, value) {
+          if (key == widget.name) {
+            bottleNumber = value;
+            temp = S2Choice<int>(
+                value: value,
+                title: value == 1
+                    ? 'One'
+                    : value == 2
+                        ? 'Two'
+                        : value == 3
+                            ? 'Three'
+                            : 'Four');
+          }
+        });
+        for (int i = 1; i <= 4; i++) {
+          i == temp.value
+              ? {
+                  bottles.add(temp),
+                }
+              : {
+                  if (!bottlesNumbers.values.contains(i))
+                    {
+                      bottles.add(S2Choice<int>(
+                          value: i,
+                          title: i == 1
+                              ? 'One'
+                              : i == 2
+                                  ? 'Two'
+                                  : i == 3
+                                      ? 'Three'
+                                      : 'Four')),
+                    }
+                };
+        }
+      } else {
+        bottlesNumbers.length == 4
+            ? {
+                checkTypes = [S2Choice<int>(value: 1, title: 'App only')]
+              }
+            : {
+                for (int i = 1; i <= 4; i++)
+                  {
+                    if (!bottlesNumbers.values.contains(i))
+                      {
+                        bottles.add(S2Choice<int>(
+                            value: i,
+                            title: i == 1
+                                ? 'One'
+                                : i == 2
+                                    ? 'Two'
+                                    : i == 3
+                                        ? 'Three'
+                                        : 'Four')),
+                        bottleNumber = bottles.first.value,
+                      }
+                  }
+              };
+      }
       getData(widget.name!);
       daysData.forEach((key, value) {
         if (key == widget.name) {
@@ -53,14 +140,11 @@ class _addDrugPageState extends State<addDrugPage> {
         myNameController.text = element.child("Name").value.toString();
         myPillsNumController.text =
             element.child("Number of pills").value.toString();
-        myBottleController.text =
-            element.child("Medicine bottle number").value.toString();
         dosesPerDay =
             int.parse(element.child("Doses per day").value.toString());
         var fireDays = element.child("Days").children;
         // print(days);
         fireDays.forEach((element) {
-          print(element.value.toString());
           int day = int.parse(element.value.toString());
           days!.add(day);
         });
@@ -73,39 +157,44 @@ class _addDrugPageState extends State<addDrugPage> {
     // Avoid memory leak (`setState` after dispose) and disconnect
     myNameController.dispose();
     myPillsNumController.dispose();
-    myBottleController.dispose();
     dosesTimesValues.clear();
     drugNameCheck = false;
     numberOfPillsCheck = false;
-    bottleCheck = false;
     timeCheck = false;
     timeNullCheck = false;
     daysCheck = false;
     saveChangesCheck = false;
+    isAppType = true;
     times.clear();
     super.dispose();
   }
 
   int dosesPerDay = 1;
+  int bottleNumber = 1;
+  int checkType = 1;
   late DatabaseReference _dbref = FirebaseDatabase.instance.ref();
   final myNameController = TextEditingController();
   final myPillsNumController = TextEditingController();
-  final myBottleController = TextEditingController();
 
   bool drugNameCheck = false;
   bool numberOfPillsCheck = false;
-  bool bottleCheck = false;
   bool timeCheck = false;
   bool timeNullCheck = false;
   bool daysCheck = false;
   bool saveChangesCheck = false;
-  List<S2Choice<int>> Doses = [
+  bool isAppType = true;
+  List<S2Choice<int>> doses = [
     S2Choice<int>(value: 1, title: '1 Doses'),
     S2Choice<int>(value: 2, title: '2 Doses'),
     S2Choice<int>(value: 3, title: '3 Doses'),
     S2Choice<int>(value: 4, title: '4 Doses'),
     S2Choice<int>(value: 5, title: '5 Doses'),
   ];
+  List<S2Choice<int>> checkTypes = [
+    S2Choice<int>(value: 1, title: 'App only'),
+    S2Choice<int>(value: 2, title: 'App and Box'),
+  ];
+  List<S2Choice<int>> bottles = [];
   List<Object?>? days = [];
   List<S2Choice<int>> Days = [
     S2Choice<int>(value: 1, title: 'Sunday'),
@@ -116,90 +205,117 @@ class _addDrugPageState extends State<addDrugPage> {
     S2Choice<int>(value: 6, title: 'Friday'),
     S2Choice<int>(value: 7, title: 'Saturday'),
   ];
-  Future<void> dbAddDrug(String DrugName, String NumOfPills,
-      String bottleNumber, int dosesPerDay) async {
+  Future<void> dbAddDrug(
+      {
+        required String drugName,
+      required String numOfPills,
+      required int checkType,
+      required int bottleNumber,
+      required int dosesPerDay,
+      required Map<int, List<dynamic>> dosesVal,
+      List<Object?>? daysList}) async {
     if (dosesPerDay <= 0 || dosesTimesValues.isEmpty) {
       return;
     }
-    _dbref.child("Drugs").once().then((value) {
-      if (!value.snapshot.hasChild("$DrugName") || widget.name != null) {
+    _dbref.child("Drugs").once().then((value) async {
+      if (!value.snapshot.hasChild("$drugName") || widget.name != null) {
         if (widget.name != null) {
           _dbref.child("Drugs").child("${widget.name}").remove();
         }
-        _dbref.child("Drugs").child("$DrugName").child("Name").set(DrugName);
-        _dbref
-            .child("Drugs")
-            .child("$DrugName")
-            .child("Number of pills")
-            .set(int.parse(NumOfPills));
-        _dbref
-            .child("Drugs")
-            .child("$DrugName")
-            .child("Medicine bottle number")
-            .set(int.parse(bottleNumber));
-        _dbref
-            .child("Drugs")
-            .child("$DrugName")
-            .child("Doses per day")
-            .set(dosesPerDay);
-        for (int i = 1; i <= dosesPerDay; i++) {
-          _dbref
+        bottlesNumbers.removeWhere((key, value) => key == drugName);
+        try {
+          _dbref.child("Drugs").child("$drugName").child("Name").set(drugName).whenComplete(() => _dbref
               .child("Drugs")
-              .child("$DrugName")
-              .child("Doses Times")
-              .child("$i")
-              .child("Hour")
-              .set(dosesTimesValues[i]!.elementAt(0));
-          _dbref
-              .child("Drugs")
-              .child("$DrugName")
-              .child("Doses Times")
-              .child("$i")
-              .child("Minute")
-              .set(dosesTimesValues[i]!.elementAt(1));
-          _dbref
-              .child("Drugs")
-              .child("$DrugName")
-              .child("Doses Times")
-              .child("$i")
-              .child("period")
-              .set(dosesTimesValues[i]!.elementAt(2));
-          _dbref
-              .child("Drugs")
-              .child("$DrugName")
-              .child("Doses Times")
-              .child("$i")
+              .child("$drugName")
               .child("Number of pills")
-              .set(dosesTimesValues[i]!.elementAt(3));
-          _dbref
+              .set(int.parse(numOfPills)).whenComplete(() =>  _dbref
               .child("Drugs")
-              .child("$DrugName")
-              .child("Doses Times")
-              .child("$i")
-              .child("State")
-              .set('Not displayed');
-        }
-        for (var i in days!) {
-          _dbref
+              .child("$drugName")
+              .child("Check Type")
+              .set(checkType).whenComplete(() => _dbref
               .child("Drugs")
-              .child("$DrugName")
-              .child("Days")
-              .child(i == 1
-                  ? "Sunday"
-                  : i == 2
-                      ? "Monday"
-                      : i == 3
-                          ? "Tuesday"
-                          : i == 4
-                              ? "Wednesday"
-                              : i == 5
-                                  ? "Thursday"
-                                  : i == 6
-                                      ? "Friday"
-                                      : "Saturday")
-              .set(i);
+              .child("$drugName")
+              .child("Medicine bottle number")
+              .set(bottleNumber).whenComplete(() =>  _dbref
+              .child("Drugs")
+              .child("$drugName")
+              .child("Doses per day")
+              .set(dosesPerDay).whenComplete((){
+            for (int i = 1; i <= dosesPerDay; i++) {
+              _dbref
+                  .child("Drugs")
+                  .child("$drugName")
+                  .child("Doses Times")
+                  .child("$i")
+                  .child("Hour")
+                  .set(dosesVal[i]!.elementAt(0)).whenComplete(() =>  _dbref
+                  .child("Drugs")
+                  .child("$drugName")
+                  .child("Doses Times")
+                  .child("$i")
+                  .child("Minute")
+                  .set(dosesVal[i]!.elementAt(1)).whenComplete(() => _dbref
+                  .child("Drugs")
+                  .child("$drugName")
+                  .child("Doses Times")
+                  .child("$i")
+                  .child("period")
+                  .set(dosesVal[i]!.elementAt(2)).whenComplete(() =>  _dbref
+                  .child("Drugs")
+                  .child("$drugName")
+                  .child("Doses Times")
+                  .child("$i")
+                  .child("Number of pills")
+                  .set(dosesVal[i]!.elementAt(3)).whenComplete(() => _dbref
+                  .child("Drugs")
+                  .child("$drugName")
+                  .child("Doses Times")
+                  .child("$i")
+                  .child("State")
+                  .set('Not displayed').whenComplete(() {
+                    if(i==dosesPerDay){
+                      int count=0;
+                      for (var i in daysList!) {
+                        count++;
+                        _dbref
+                            .child("Drugs")
+                            .child("$drugName")
+                            .child("Days")
+                            .child(i == 1
+                            ? "Sunday"
+                            : i == 2
+                            ? "Monday"
+                            : i == 3
+                            ? "Tuesday"
+                            : i == 4
+                            ? "Wednesday"
+                            : i == 5
+                            ? "Thursday"
+                            : i == 6
+                            ? "Friday"
+                            : "Saturday")
+                            .set(i).whenComplete(() {
+                              if(count==daysList.length){
+                                widget.name == null
+                                    ? showToast('Med added')
+                                    : showToast('Med edited');
+                                Navigator.pushAndRemoveUntil(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                        const homePage()),
+                                        (e) => false);
+                              }
+                        });
+                      }
+                    }
+              })))));
+
+            }
+          })))));
+        } catch (e) {
+          print(e);
         }
-        showToast('Med added');
       } else {
         showToast('The medicine is already exist.');
       }
@@ -351,7 +467,7 @@ class _addDrugPageState extends State<addDrugPage> {
                         style: TextStyle(color: Colors.red),
                       ),
                     )),
-                SizedBox(height: 15),
+                const SizedBox(height: 15),
                 buildNumberOfPills(),
                 Visibility(
                     visible: numberOfPillsCheck,
@@ -362,20 +478,52 @@ class _addDrugPageState extends State<addDrugPage> {
                         style: TextStyle(color: Colors.red),
                       ),
                     )),
-
                 const SizedBox(height: 15),
-                buildMedicineBottleNumber(),
-                Visibility(
-                    visible: bottleCheck,
-                    child: const Align(
-                      alignment: Alignment.topLeft,
-                      child: Text(
-                        'Missing field!',
-                        style: TextStyle(color: Colors.red),
+                Container(
+                  color: const Color(0xFFEEEEEE),
+                  child: SmartSelect<int>.single(
+                      modalType: S2ModalType.popupDialog,
+                      modalStyle: S2ModalStyle(
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
-                    )),
-
+                      selectedValue: checkType,
+                      title: 'Remind you through',
+                      choiceItems: checkTypes,
+                      onChange: (state) {
+                        setState(() {
+                          checkType = state.value!;
+                          if (state.value == 1) {
+                            isAppType = true;
+                          } else {
+                            isAppType = false;
+                          }
+                        });
+                      }),
+                ),
                 const SizedBox(height: 15),
+                Visibility(
+                  visible: !isAppType,
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 15),
+                    color: const Color(0xFFEEEEEE),
+                    child: SmartSelect<int>.single(
+                        modalType: S2ModalType.popupDialog,
+                        modalStyle: S2ModalStyle(
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        selectedValue: bottleNumber,
+                        title: 'Medicine bottle number',
+                        choiceItems: bottles,
+                        onChange: (state) {
+                          setState(() {
+                            bottleNumber = state.value!;
+                          });
+                        }),
+                  ),
+                ),
+
                 Container(
                   color: const Color(0xFFEEEEEE),
                   child: SmartSelect<int>.single(
@@ -386,7 +534,7 @@ class _addDrugPageState extends State<addDrugPage> {
                       ),
                       selectedValue: dosesPerDay,
                       title: 'Doses per day',
-                      choiceItems: Doses,
+                      choiceItems: doses,
                       onChange: (state) {
                         setState(() {
                           dosesPerDay = state.value!;
@@ -394,7 +542,7 @@ class _addDrugPageState extends State<addDrugPage> {
                       }),
                 ),
                 const SizedBox(
-                  height: 5,
+                  height: 15,
                 ),
                 timeDosesMaker(dosesPerDay)!,
                 Visibility(
@@ -469,27 +617,28 @@ class _addDrugPageState extends State<addDrugPage> {
                                     {
                                       if (!drugNameCheck &&
                                           !numberOfPillsCheck &&
-                                          !bottleCheck &&
                                           !timeCheck &&
                                           !timeNullCheck &&
                                           !daysCheck)
                                         {
                                           dbAddDrug(
-                                              myNameController.text.trim(),
-                                              myPillsNumController.text.trim(),
-                                              myBottleController.text.trim(),
-                                              dosesPerDay),
-                                          Navigator.pushAndRemoveUntil(
-                                              context,
-                                              MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      const homePage()),
-                                              (e) => false)
+                                                  drugName: myNameController
+                                                      .text
+                                                      .trim(),
+                                                  numOfPills:
+                                                      myPillsNumController.text
+                                                          .trim(),
+                                                  checkType: checkType,
+                                                  bottleNumber: isAppType
+                                                      ? 0
+                                                      : bottleNumber,
+                                                  dosesPerDay: dosesPerDay,
+                                                  dosesVal: dosesTimesValues,
+                                                  daysList: days)
                                         }
                                     }
                                   else
                                     {
-                                      print(dosesTimesValues),
                                       Navigator.pushAndRemoveUntil(
                                           context,
                                           MaterialPageRoute(
@@ -500,27 +649,25 @@ class _addDrugPageState extends State<addDrugPage> {
                                 });
                       } else {
                         if (dosesTimesValues != {}) {
-                          print('save $dosesTimesValues');
                           if (!drugNameCheck &&
                               !numberOfPillsCheck &&
-                              !bottleCheck &&
                               !timeCheck &&
                               !timeNullCheck &&
                               !daysCheck &&
                               !saveChangesCheck) {
                             dbAddDrug(
-                                myNameController.text.trim(),
-                                myPillsNumController.text.trim(),
-                                myBottleController.text.trim(),
-                                dosesPerDay);
-                            Navigator.pushAndRemoveUntil(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => const homePage()),
-                                (e) => false);
+                                    drugName: myNameController.text.trim(),
+                                    numOfPills:
+                                        myPillsNumController.text.trim(),
+                                    checkType: checkType,
+                                    bottleNumber: isAppType ? 0 : bottleNumber,
+                                    dosesPerDay: dosesPerDay,
+                                    dosesVal: dosesTimesValues,
+                                    daysList: days);
                           }
-                        } else
+                        } else {
                           print(dosesTimesValues);
+                        }
                       }
                     }),
                   },
@@ -545,7 +692,7 @@ class _addDrugPageState extends State<addDrugPage> {
           )
         ],
       );
-      for (int i = 1; i < doses; i++)
+      for (int i = 1; i < doses; i++) {
         maker.children.insert(
             i,
             dosesTimes(
@@ -553,6 +700,7 @@ class _addDrugPageState extends State<addDrugPage> {
               dosesPerDay: doses,
               drugName: widget.name,
             ));
+      }
     } else {
       maker = Column(
         children: [
@@ -584,39 +732,41 @@ class _addDrugPageState extends State<addDrugPage> {
   }
 
   void check(int length) {
-    if (myNameController.text == '')
+    if (myNameController.text == '') {
       drugNameCheck = true;
-    else
+    } else {
       drugNameCheck = false;
-    if (myPillsNumController.text == '')
+    }
+    if (myPillsNumController.text == '') {
       numberOfPillsCheck = true;
-    else
+    } else {
       numberOfPillsCheck = false;
-    if (myBottleController.text == '')
-      bottleCheck = true;
-    else
-      bottleCheck = false;
+    }
     if (times.isNotEmpty)
       for (int i = 0; i < times.length; i++) {
-        for (int x = times.length - 1; x > i; x--)
+        for (int x = times.length - 1; x > i; x--) {
           if (times[i] == times[x] && times[i] != 'a' && times[x] != 'a') {
             timeCheck = true;
             break;
-          } else
+          } else {
             timeCheck = false;
+          }
+        }
         if (timeCheck) break;
       }
-    if (dosesTimesValues.isEmpty)
+    if (dosesTimesValues.isEmpty) {
       timeNullCheck = true;
-    else if (dosesTimesValues.length != length && length != 1)
+    } else if (dosesTimesValues.length != length && length != 1) {
       timeNullCheck = true;
-    else
+    } else {
       timeNullCheck = false;
+    }
     print(days.toString());
-    if (days == null || days.toString() == '[]')
+    if (days == null || days.toString() == '[]') {
       daysCheck = true;
-    else
+    } else {
       daysCheck = false;
+    }
   }
 
   Widget buildDrugName() {
@@ -637,15 +787,15 @@ class _addDrugPageState extends State<addDrugPage> {
     );
   }
 
-  Widget buildMedicineBottleNumber() {
-    return TextFormField(
-      controller: myBottleController,
-      keyboardType: TextInputType.phone,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      decoration: const InputDecoration(
-          labelText: 'Medicine Bottle Number', border: OutlineInputBorder()),
-    );
-  }
+  // Widget buildMedicineBottleNumber() {
+  //   return TextFormField(
+  //     controller: myBottleController,
+  //     keyboardType: TextInputType.phone,
+  //     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+  //     decoration: const InputDecoration(
+  //         labelText: 'Medicine Bottle Number', border: OutlineInputBorder()),
+  //   );
+  // }
 }
 
 class dosesTimes extends StatefulWidget {
@@ -758,21 +908,23 @@ class _dosesTimesState extends State<dosesTimes> {
             onChanged: (int? newValue) {
               setState(() {
                 dropdownValue = newValue!;
-                dosesTimesValues[widget.doseNumber] = [
-                  newTime!.hour,
-                  newTime!.minute,
-                  newTime!.period.toString().contains('am') ? 'AM' : 'PM',
-                  dropdownValue
-                ];
-                timeText = newTime!.hour.toString() +
-                    ':' +
-                    newTime!.minute.toString() +
-                    ' ' +
-                    dosesTimesValues[widget.doseNumber]!.elementAt(2);
+                if (newTime != null) {
+                  dosesTimesValues[widget.doseNumber] = [
+                    newTime!.hour,
+                    newTime!.minute,
+                    newTime!.period.toString().contains('am') ? 'AM' : 'PM',
+                    dropdownValue
+                  ];
+                }
+                if (newTime != null) {
+                  timeText =
+                      '${newTime!.hour}:${newTime!.minute} ${dosesTimesValues[widget.doseNumber]!.elementAt(2)}';
+                }
                 //  print(DosesTimesValues);
               });
             },
-            items: <int>[1, 2, 3].map<DropdownMenuItem<int>>((int value) {
+            items: <int>[1, 2, 3, 4, 5, 6, 7, 8]
+                .map<DropdownMenuItem<int>>((int value) {
               return DropdownMenuItem<int>(
                 value: value,
                 child: Text(value.toString()),
@@ -797,10 +949,7 @@ class _dosesTimesState extends State<dosesTimes> {
         newTime!.period.toString().contains('am') ? 'AM' : 'PM',
         dropdownValue
       ];
-      timeText = newTime!.hour.toString() +
-          ':' +
-          newTime!.minute.toString() +
-          ' ' +
+      timeText = '${newTime!.hour}:${newTime!.minute} ' +
           dosesTimesValues[widget.doseNumber]!.elementAt(2);
       times[widget.doseNumber - 1] = timeText;
       //print(DosesTimesValues.length);

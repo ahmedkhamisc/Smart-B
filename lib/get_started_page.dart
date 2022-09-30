@@ -114,12 +114,14 @@ class _GetStartedState extends State<GetStarted> {
           i.value.toString().contains('P')) {
         SharedPreferences prefs = await SharedPreferences.getInstance();
         prefs.setBool("PisLoggedIn", true);
+        _dbref.child("Users").child("current").set('person');
         whoIs = 'P';
       } else if (UserController.text == i.value &&
           user != [] &&
           i.value.toString().contains('R')) {
         SharedPreferences prefs = await SharedPreferences.getInstance();
         prefs.setBool("RisLoggedIn", true);
+        _dbref.child("Users").child("current").set('related');
         whoIs = 'R';
       }
     }

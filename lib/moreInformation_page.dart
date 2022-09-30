@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'services/firebase&Constants.dart';
 
 class moreInformationPage extends StatefulWidget {
-  const moreInformationPage({Key? key}) : super(key: key);
-
+  moreInformationPage({Key? key, this.user}) : super(key: key);
+  String? user;
   @override
   State<moreInformationPage> createState() => _moreInformationPageState();
 }
@@ -31,7 +31,9 @@ class _moreInformationPageState extends State<moreInformationPage> {
                       ),
                     )),
                 StreamBuilder(
-                    stream: getMedicineData(size: size),
+                    stream: widget.user != null
+                        ? getMedicineData(size: size, user: widget.user)
+                        : getMedicineData(size: size),
                     builder: (context, AsyncSnapshot<Widget> snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const CircularProgressIndicator(
