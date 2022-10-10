@@ -1,9 +1,9 @@
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'firebase&Constants.dart';
 
 Future<void> createBasicNotification({
@@ -17,18 +17,20 @@ Future<void> createBasicNotification({
   );
 }
 
-Future<void> createScheduleNotification({
-  required int id,
-  required String title,
-  required String body,
-}) async {
+Future<void> createScheduleNotification(
+    {required int id,
+    required String title,
+    required String body,
+    required int day,
+    required int hour}) async {
   await AwesomeNotifications().createNotification(
       content: NotificationContent(
           id: id, channelKey: 'schedule_channel', title: title, body: body),
       schedule: NotificationCalendar(
           timeZone: 'GMT+03:00',
           repeats: true,
-          hour: 15,
+          day: day,
+          hour: hour,
           minute: 0,
           second: 0,
           millisecond: 0));
@@ -76,33 +78,32 @@ class NotificationController {
 
   /// Use this method to detect if the user dismissed a notification
   static Future<void> onDismissActionReceivedMethod(
-      ReceivedAction receivedAction) async {
-    globalState[receivedAction.title.toString()] = 'Skipped';
-  }
+      ReceivedAction receivedAction) async {}
 
   /// Use this method to detect when the user taps on a notification or action button
   static Future<void> onActionReceivedMethod(
       ReceivedAction receivedAction) async {
     await Firebase.initializeApp();
-    print(receivedAction.buttonKeyPressed);
+    DatabaseReference _dbref = FirebaseDatabase.instance.ref();
     if (receivedAction.buttonKeyPressed == 'Completed') {
+      print(receivedAction.summary);
       await confirmed(
-          name: receivedAction.title.toString(),
+          name: receivedAction.title.toString().trim(),
           doseNum: int.parse(receivedAction.summary!),
           state: 'Completed');
       SharedPreferences prefs = await SharedPreferences.getInstance();
       int drugsChecked = prefs.getInt("drugsChecked")!;
       --drugsChecked;
+      print('d = $drugsChecked');
       drugsChecked == 0
           ? {
-              setLifeCycleState(state: 'confirmed'),
+              _dbref.child("Smart-b1").child("State").set('confirmed'),
             }
           : {};
       prefs.setInt("drugsChecked", drugsChecked);
     } else if (receivedAction.buttonKeyPressed == 'Skipped') {
-      print(receivedAction.summary);
       await confirmed(
-          name: receivedAction.title.toString(),
+          name: receivedAction.title.toString().trim(),
           doseNum: int.parse(receivedAction.summary!),
           state: 'Skipped');
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -110,7 +111,7 @@ class NotificationController {
       --drugsChecked;
       drugsChecked == 0
           ? {
-              setLifeCycleState(state: 'confirmed'),
+              _dbref.child("Smart-b1").child("State").set('confirmed'),
             }
           : {};
       prefs.setInt("drugsChecked", drugsChecked);

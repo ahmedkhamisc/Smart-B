@@ -70,10 +70,7 @@ class _testState extends State<test> with WidgetsBindingObserver {
                 'No',
                 style: TextStyle(color: Colors.red),
               ),
-              onPressed: () {
-                //saveChangesCheck = true;
-                Navigator.of(context).pop();
-              },
+              onPressed: () {},
             ),
           ],
         );
@@ -87,13 +84,14 @@ class _testState extends State<test> with WidgetsBindingObserver {
       body: Center(
           child: ElevatedButton(
         onPressed: () {
-          //confirmed(name: 'Carvedilol', doseNum: 1, state: 'Completed');
-          // timeAll(pillsNums: [0, 0, 0, 0]);
-          createNotificationWithButtons(
-              id: 0, title: 'Carvedilol', body: 'body', doseNum: 1);
+          printWeek();
         },
         child: Text('click'),
       )),
     );
   }
+}
+
+void printWeek() {
+  print(DateTime.now().day);
 }

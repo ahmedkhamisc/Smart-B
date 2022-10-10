@@ -1,33 +1,25 @@
 import 'dart:async';
-import 'dart:io';
-import 'package:awesome_notifications/android_foreground_service.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:smart_b/services/firebase&Constants.dart';
 import 'package:smart_b/services/local_notification_service.dart';
 import 'package:smart_b/test.dart';
 import 'get_started_page.dart';
 import 'home_page.dart';
-import 'addDrug_page.dart';
-import 'moreInformation_page.dart';
-import 'home_relatedPerson_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:workmanager/workmanager.dart';
 
 const fetchBackground = "fetchBackground";
-
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     switch (task) {
       case fetchBackground:
         await Firebase.initializeApp().then((value) async {
-          for (int i = 1; i <= 900; ++i) {
-            await Future.delayed(const Duration(seconds: 1));
+          for (int i = 1; i <= 90; ++i) {
+            await Future.delayed(const Duration(seconds: 10));
             getBackgroundServices();
           }
         });
@@ -61,14 +53,14 @@ Future<void> main() async {
             channelName: 'Basic notifications',
             channelDescription: 'Notification channel',
             importance: NotificationImportance.Max,
-            defaultColor: Color(0xFF44CBB1),
+            defaultColor: const Color(0xFF44CBB1),
             ledColor: Colors.white),
         NotificationChannel(
             channelKey: 'schedule_channel',
             channelName: 'Basic notifications',
             channelDescription: 'Notification channel',
             importance: NotificationImportance.Max,
-            defaultColor: Color(0xFF44CBB1),
+            defaultColor: const Color(0xFF44CBB1),
             ledColor: Colors.white),
         NotificationChannel(
             channelKey: 'button_channel',
@@ -76,7 +68,7 @@ Future<void> main() async {
             channelDescription: 'Notification channel',
             locked: true,
             importance: NotificationImportance.Max,
-            defaultColor: Color(0xFF44CBB1),
+            defaultColor: const Color(0xFF44CBB1),
             ledColor: Colors.white)
       ],
       debug: true);
@@ -93,10 +85,30 @@ Future<void> main() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   var status1 = prefs.getBool('PisLoggedIn') ?? false;
   var status2 = prefs.getBool('RisLoggedIn') ?? false;
-  print('1= $status1');
-  print('2= $status2');
-  print('getP= ${prefs.getBool('PisLoggedIn')}');
-  print('getR= ${prefs.getBool('RisLoggedIn')}');
+  DatabaseReference dbref = FirebaseDatabase.instance.ref();
+  status1
+      ? {
+          dbref.child("Users").child("BOX1").child("Person").set('person'),
+          dbref.child("Users").child("BOX1").child("Related").set('no one'),
+          dbref
+              .child("Users")
+              .child("BOX1")
+              .child("Last seen")
+              .set(DateTime.now().hour),
+        }
+      : status2
+          ? {
+              dbref
+                  .child("Users")
+                  .child("BOX1")
+                  .child("Related")
+                  .set('related'),
+              dbref.child("Users").child("BOX1").child("Person").set('no one'),
+            }
+          : {
+              dbref.child("Users").child("BOX1").child("Person").set('no one'),
+              dbref.child("Users").child("BOX1").child("Related").set('no one')
+            };
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
       .then((_) {
     runApp(MaterialApp(
@@ -112,11 +124,16 @@ Future<void> main() async {
           floatingActionButtonTheme: const FloatingActionButtonThemeData(
             backgroundColor: Color(0xFF44CBB1),
           ),
+          tabBarTheme: const TabBarTheme(
+            unselectedLabelColor: Colors.white,
+          ),
         ),
         home: status1 == true
-            ? const homePage()
+            ? homePage()
             : status2 == true
-                ? const homeRelatedPersonPage()
+                ? homePage(
+                    user: 'related',
+                  )
                 : const GetStarted()));
   });
 }

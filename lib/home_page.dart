@@ -1,102 +1,85 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'moreInformation_page.dart';
 import 'addDrug_page.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 import 'dart:async';
 import 'services/firebase&Constants.dart';
 import 'get_started_page.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class homePage extends StatefulWidget {
-  const homePage({Key? key}) : super(key: key);
+  homePage({Key? key, this.user}) : super(key: key);
+  String? user;
   @override
   State<homePage> createState() => _homePageState();
 }
 
 class _homePageState extends State<homePage>
     with SingleTickerProviderStateMixin {
-  int _currentPageIndex = 0;
-  final List _pagesBody = [
-    const homePageBody(),
-    addDrugPage(),
-    moreInformationPage(),
-  ];
+  int _currentIndex = 0;
+  late PageController _pageController;
   late final TabController controller;
+  late final List _pagesBody;
+
   Color indicatorColor = Color(0xFF44CBB1);
   bool showBottomBar = true;
   @override
   void initState() {
-    controller = TabController(length: 3, vsync: this);
     getDailyAdvice();
+    _pageController = PageController();
+    controller = TabController(length: 2, vsync: this);
+    _pagesBody = [
+      homePageBody(user: widget.user),
+      moreInformationPage(
+        user: widget.user,
+      ),
+    ];
     super.initState();
   }
 
-  void onTapped(int index) {
-    setState(() {
-      _currentPageIndex = index;
-      if (index == 1) {
-        indicatorColor = Colors.white;
-        showBottomBar = false;
-      } else {
-        indicatorColor = Color(0xFF44CBB1);
-        showBottomBar = true;
-      }
-    });
+  @override
+  void dispose() {
+    _pageController.dispose();
+    controller.dispose();
+    super.dispose();
   }
 
   Widget reviewSaved = Column(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [],
   );
+  late Size size;
+
   @override
   Widget build(BuildContext context) {
+    size = MediaQuery.of(context).size;
     return Scaffold(
-      body: _pagesBody[_currentPageIndex],
-      bottomNavigationBar: showBottomBar
-          ? Container(
-              color: Colors.white,
-              child: TabBar(
-                controller: controller,
-                padding: EdgeInsets.only(bottom: 20.0),
-                unselectedLabelColor: const Color(0xFF44CBB1),
-                labelColor: const Color(0xFF44CBB1),
-                indicatorColor: indicatorColor,
-                indicatorSize: TabBarIndicatorSize.label,
-                onTap: onTapped,
-                tabs: const [
-                  Tab(
-                    icon: Icon(
-                      Icons.home,
-                      size: 36.0,
-                    ),
-                  ),
-                  Tab(
-                    icon: FloatingActionButton(
-                      onPressed: null,
-                      child: Icon(
-                        Icons.add,
-                        size: 36.0,
-                      ),
-                    ),
-                  ),
-                  Tab(
-                    icon: Icon(
-                      Icons.wysiwyg,
-                      size: 36.0,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : null,
+      body: _pagesBody[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        onTap: (val) {
+          setState(() {
+            _currentIndex = val;
+          });
+        },
+        currentIndex: _currentIndex,
+        selectedItemColor: const Color(0xFF44CBB1),
+        backgroundColor: Colors.white,
+        items: const [
+          BottomNavigationBarItem(
+              label: '', icon: Icon(FontAwesomeIcons.calendarCheck)),
+          BottomNavigationBarItem(
+              label: '', icon: Icon(FontAwesomeIcons.prescriptionBottleMedical))
+        ],
+      ),
     );
   }
 }
 
 class homePageBody extends StatefulWidget {
-  const homePageBody({Key? key}) : super(key: key);
-
+  homePageBody({Key? key, this.user}) : super(key: key);
+  String? user;
   @override
   State<homePageBody> createState() => _homePageBodyState();
 }
@@ -109,122 +92,122 @@ Column tempRev = Column(
 
 class _homePageBodyState extends State<homePageBody> {
   int t = 0;
-  int _current = 0;
-  final CarouselController _controller = CarouselController();
   bool checkLogout = false;
   late Size size;
+  void handleClick(String value) {
+    switch (value) {
+      case 'Logout':
+        logout().whenComplete(() {
+          Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (builder) => const GetStarted()),
+              (route) => false);
+        });
+        break;
+    }
+  }
+
+  late double fontSize;
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.white,
+      statusBarIconBrightness: Brightness.dark,
+    ));
     size = MediaQuery.of(context).size;
-    fontSize = size.height * 0.024;
-    imgHeight = size.height * 0.17;
-    imgWidth = size.width * 0.17;
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: <Widget>[
-              Container(
-                margin: const EdgeInsets.only(top: 20),
-                child: CarouselSlider(
-                  items: adviceList,
-                  carouselController: _controller,
-                  options: CarouselOptions(
-                      autoPlay: true,
-                      enlargeCenterPage: true,
-                      aspectRatio: 2.0,
-                      onPageChanged: (index, reason) {
-                        setState(() {
-                          _current = index;
-                        });
-                      }),
-                ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: adviceList.asMap().entries.map((entry) {
-                  return GestureDetector(
-                    onTap: () => _controller.animateToPage(entry.key),
-                    child: Container(
-                      width: size.width * 0.035,
-                      height: size.height * 0.035,
-                      margin: const EdgeInsets.symmetric(
-                          vertical: 8.0, horizontal: 4.0),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFF44CBB1)
-                            .withOpacity(_current == entry.key ? 0.9 : 0.3),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              Row(
-                children: [
-                  Container(
-                    margin: const EdgeInsets.only(left: 33.0, top: 25.0),
+        child: Column(
+          children: <Widget>[
+            Row(
+              children: [
+                Flexible(
+                  child: Container(
+                    padding: EdgeInsets.all(size.width * 0.05),
                     child: const Align(
                         alignment: Alignment.topLeft,
                         child: Text(
                           'Daily Review',
                           style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 17.0),
+                              fontWeight: FontWeight.bold, fontSize: 25),
                         )),
                   ),
-                  Container(
-                    margin:
-                        EdgeInsets.only(left: size.height * 0.27, top: 25.0),
-                    child: InkWell(
-                      onTap: () {
-                        setState(() {
-                          _showMyDialogLogout(
-                              title: 'Smart-B support',
-                              body: 'Are you sure you want to logout?');
-                        });
-                      },
-                      child: const Icon(
-                        Icons.logout,
-                        color: Colors.grey,
+                ),
+                Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.only(left: size.width * 0.26),
+                      child: widget.user == null
+                          ? IconButton(
+                              onPressed: () {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (builder) => addDrugPage()));
+                              },
+                              icon: const Icon(
+                                FontAwesomeIcons.plus,
+                                color: Colors.black,
+                              ),
+                            )
+                          : null,
+                    ),
+                    Container(
+                      padding: EdgeInsets.only(
+                          left: widget.user == null
+                              ? size.width * 0.001
+                              : size.width * 0.12),
+                      child: PopupMenuButton<String>(
+                        iconSize: 30,
+                        icon: Icon(Icons.more_vert,
+                            size: size.width * 0.08, color: Colors.black),
+                        onSelected: handleClick,
+                        itemBuilder: (BuildContext context) {
+                          return {'Logout'}.map((String choice) {
+                            return PopupMenuItem<String>(
+                              value: choice,
+                              child: Text(choice),
+                            );
+                          }).toList();
+                        },
                       ),
                     ),
-                  ),
-                ],
-              ),
-              SingleChildScrollView(
+                  ],
+                )
+              ],
+            ),
+            Expanded(
+              child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.all(21),
-                  child: Column(
-                    children: [
-                      StreamBuilder(
-                          initialData: tempRev,
-                          stream: getDailyRevData(),
-                          builder: (context, AsyncSnapshot<Widget> snapshot) {
-                            if (t == 0) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const CircularProgressIndicator(
-                                  color: Color(0xFF44CBB1),
-                                );
-                              }
-                            }
-                            if (snapshot.data == null) {
-                              t = 1;
-                              return Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Center(
-                                    child: Text('No doses for today'),
-                                  )
-                                ],
-                              );
-                            }
-                            t = 1;
-                            return snapshot.data!;
-                          }),
-                    ],
-                  ))
-            ],
-          ),
+                  child: StreamBuilder(
+                      initialData: tempRev,
+                      stream: getDailyRevData(),
+                      builder: (context, AsyncSnapshot<Widget> snapshot) {
+                        if (t == 0) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const CircularProgressIndicator(
+                              color: Color(0xFF44CBB1),
+                            );
+                          }
+                        }
+                        if (snapshot.data == null) {
+                          t = 1;
+                          return Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Center(
+                                child: Text('No doses for today'),
+                              )
+                            ],
+                          );
+                        }
+                        t = 1;
+                        return snapshot.data!;
+                      })),
+            )
+          ],
         ),
       ),
     );
@@ -296,132 +279,3 @@ class _homePageBodyState extends State<homePageBody> {
     );
   }
 }
-
-late double fontSize;
-late double imgHeight;
-late double imgWidth;
-final List<Widget> adviceList = [
-  Container(
-    decoration: const BoxDecoration(
-      color: Color(0xFF44CBB1),
-      borderRadius: BorderRadius.all(
-        Radius.circular(28),
-      ),
-    ),
-    child: Row(
-      children: <Widget>[
-        Flexible(
-          child: Container(
-            margin: const EdgeInsets.only(left: 25.0, top: 25.0),
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: Text(
-                'Drink milk daily to prevent osteoporosis and bone fractures and even help you maintain a healthy weight',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: fontSize,
-                ),
-              ),
-            ),
-          ),
-        ),
-        Flexible(
-          child: Container(
-            margin: const EdgeInsets.all(20.0),
-            child: Align(
-              alignment: Alignment.bottomRight,
-              child: Image.asset(
-                'images/milk.png',
-                height: imgHeight,
-                width: imgWidth,
-                alignment: Alignment.bottomRight,
-              ),
-            ),
-          ),
-        ),
-      ],
-    ),
-  ),
-  Container(
-    decoration: const BoxDecoration(
-      color: Color(0xFF44CBB1),
-      borderRadius: BorderRadius.all(
-        Radius.circular(28),
-      ),
-    ),
-    child: Row(
-      children: <Widget>[
-        Flexible(
-          child: Container(
-            margin: const EdgeInsets.only(left: 25.0, top: 25.0),
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: Text(
-                'Excessive coffee consumption is harmful to heart patients',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: fontSize,
-                ),
-              ),
-            ),
-          ),
-        ),
-        Flexible(
-          child: Container(
-            margin: const EdgeInsets.all(20.0),
-            child: Align(
-              alignment: Alignment.bottomRight,
-              child: Image.asset(
-                'images/cup.png',
-                height: imgHeight,
-                width: imgWidth,
-                alignment: Alignment.bottomRight,
-              ),
-            ),
-          ),
-        ),
-      ],
-    ),
-  ),
-  Container(
-    decoration: const BoxDecoration(
-      color: Color(0xFF44CBB1),
-      borderRadius: BorderRadius.all(
-        Radius.circular(28),
-      ),
-    ),
-    child: Row(
-      children: <Widget>[
-        Flexible(
-          child: Container(
-            margin: const EdgeInsets.only(left: 25.0, top: 25.0),
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: Text(
-                'Inadequate sleep reduces leptin levels; It is responsible for the feeling of satiety',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: fontSize,
-                ),
-              ),
-            ),
-          ),
-        ),
-        Flexible(
-          child: Container(
-            margin: const EdgeInsets.all(20.0),
-            child: Align(
-              alignment: Alignment.bottomRight,
-              child: Image.asset(
-                'images/sleeping.png',
-                height: imgHeight,
-                width: imgWidth,
-                alignment: Alignment.bottomRight,
-              ),
-            ),
-          ),
-        ),
-      ],
-    ),
-  ),
-];

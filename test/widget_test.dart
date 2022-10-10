@@ -14,7 +14,7 @@ import 'package:smart_b/main.dart';
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const homePage());
+    await tester.pumpWidget(homePage());
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);
